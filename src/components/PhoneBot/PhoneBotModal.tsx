@@ -16,9 +16,16 @@ import {
   ShieldCheck,
   Building2,
   CheckCircle2,
+  Globe,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { processBotQuery, BotResponse } from '../../services/phoneBotEngine';
+import {
+  processBotQuery,
+  BotResponse,
+  SupportedBotLang,
+  BOT_LANGUAGES,
+  getInitialGreeting,
+} from '../../services/phoneBotEngine';
 
 // TypeScript declarations for Web Speech API
 interface IWindow extends Window {
@@ -31,13 +38,15 @@ export const PhoneBotModal: React.FC = () => {
     isPhoneBotOpen,
     setIsPhoneBotOpen,
     phoneBotMode,
-    setPhoneBotMode,
     crops,
     bookings,
     currentUser,
     playFeedbackTone,
     addNotification,
   } = useApp();
+
+  // Active Language State
+  const [botLang, setBotLang] = useState<SupportedBotLang>('hi');
 
   // Call States
   const [callState, setCallState] = useState<'incoming' | 'calling' | 'connected' | 'ended'>('incoming');
@@ -50,6 +59,9 @@ export const PhoneBotModal: React.FC = () => {
   const [currentSpeechTranscript, setCurrentSpeechTranscript] = useState('');
   const [textInput, setTextInput] = useState('');
 
+  // Audio element reference for Edge-TTS neural speech playback
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
   // Conversation transcript
   const [messages, setMessages] = useState<
     { sender: 'bot' | 'farmer'; text: string; time: string; quickActions?: { label: string; action: string }[] }[]
@@ -59,19 +71,19 @@ export const PhoneBotModal: React.FC = () => {
   const timerRef = useRef<any>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  const activeLangConfig = BOT_LANGUAGES.find((l) => l.code === botLang) || BOT_LANGUAGES[0];
+
   // Initialize or reset when modal opens
   useEffect(() => {
     if (isPhoneBotOpen) {
       if (phoneBotMode === 'outbound') {
-        // Farmer is receiving an automated robo-call from APMC
         setCallState('incoming');
-        playRingtone();
+        playFeedbackTone('ping');
       } else {
-        // Farmer is dialing the 1800-180-1551 Helpline
         setCallState('calling');
         setTimeout(() => {
           connectCall();
-        }, 1800);
+        }, 1600);
       }
     } else {
       endCall();
@@ -100,60 +112,108 @@ export const PhoneBotModal: React.FC = () => {
     }
   }, [messages]);
 
-  const playRingtone = () => {
-    playFeedbackTone('ping');
-  };
-
-  const connectCall = () => {
+  const connectCall = (targetLang?: SupportedBotLang) => {
+    const lang = targetLang || botLang;
     setCallState('connected');
     playFeedbackTone('success');
 
     const farmerFirstName = currentUser?.name?.split(' ')[0] || 'किसान भाई';
+    const activeBooking = bookings[0];
 
-    let initialBotGreeting = '';
-    if (phoneBotMode === 'outbound') {
-      const activeBooking = bookings[0];
-      initialBotGreeting = `नमस्कार ${farmerFirstName} जी! यह इंदौर मंडी कार्यालय से ऑटोमेटेड अपडेट है। आपका टोकन ${activeBooking?.tokenNumber || 'KT-MP-2026-9041'} सफलतापूर्वक सत्यापित हो चुका है। आप अपनी उपज लेकर आ सकते हैं।`;
-    } else {
-      initialBotGreeting = `नमस्कार ${farmerFirstName} जी! किसानट्रैक 24x7 वॉइस हेल्पलाइन में आपका स्वागत है। मैं आपका डिजिटल फोन सहायक हूँ। आप आज का मंडी भाव, टोकन स्थिति, या स्लॉट बुकिंग के बारे में पूछ सकते हैं।`;
-    }
+    const greeting = getInitialGreeting(
+      lang,
+      farmerFirstName,
+      phoneBotMode === 'outbound',
+      activeBooking?.tokenNumber
+    );
 
     const initialMsg = {
       sender: 'bot' as const,
-      text: initialBotGreeting,
+      text: greeting.displayText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       quickActions: [
-        { label: '🌾 गेहूँ का भाव', action: 'गेहूँ का भाव' },
-        { label: '📋 टोकन स्थिति', action: 'टोकन स्थिति' },
-        { label: '🏛️ मंडी में भीड़', action: 'मंडी भीड़' },
+        { label: '🌾 भाव / Rates', action: 'भाव' },
+        { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+        { label: '🏛️ मंडी भीड़ / Queue', action: 'मंडी भीड़' },
       ],
     };
 
     setMessages([initialMsg]);
-    speakText(initialBotGreeting);
+    speakText(greeting.spokenText, lang);
   };
 
-  // Text-To-Speech
-  const speakText = (text: string) => {
-    if (!isSpeakerOn || !('speechSynthesis' in window)) return;
+  // ─── NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) ───
+  const speakText = (text: string, currentLang: SupportedBotLang = botLang) => {
+    if (!isSpeakerOn) return;
 
-    window.speechSynthesis.cancel();
+    // Cancel any active speech synthesis or audio
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current = null;
+    }
+
+    const voiceName = BOT_LANGUAGES.find((l) => l.code === currentLang)?.voice || 'hi-IN-SwaraNeural';
+    const audioUrl = `/api/tts?text=${encodeURIComponent(text)}&lang=${currentLang}&voice=${voiceName}`;
+
+    try {
+      const audio = new Audio(audioUrl);
+      audioElementRef.current = audio;
+
+      audio.onplay = () => {
+        setIsBotSpeaking(true);
+      };
+
+      audio.onended = () => {
+        setIsBotSpeaking(false);
+        audioElementRef.current = null;
+        if (!isMuted && callState === 'connected') {
+          startListening(currentLang);
+        }
+      };
+
+      audio.onerror = () => {
+        // Fallback to client Web Speech API if Vite dev server middleware is unreachable
+        fallbackSpeakText(text, currentLang);
+      };
+
+      audio.play().catch(() => {
+        fallbackSpeakText(text, currentLang);
+      });
+    } catch {
+      fallbackSpeakText(text, currentLang);
+    }
+  };
+
+  const fallbackSpeakText = (text: string, currentLang: SupportedBotLang) => {
+    if (!('speechSynthesis' in window)) return;
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
     utterance.pitch = 1.0;
 
+    const langCodeMap: Record<string, string> = {
+      hi: 'hi-IN',
+      mr: 'mr-IN',
+      ta: 'ta-IN',
+      te: 'te-IN',
+      en: 'en-IN',
+    };
+    utterance.lang = langCodeMap[currentLang] || 'hi-IN';
+
     const voices = window.speechSynthesis.getVoices();
-    const hindiVoice = voices.find((v) => v.lang.includes('hi') || v.lang.includes('IN'));
-    if (hindiVoice) {
-      utterance.voice = hindiVoice;
+    const matchedVoice = voices.find((v) => v.lang.includes(currentLang) || v.lang.includes('IN'));
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
     }
 
     utterance.onstart = () => setIsBotSpeaking(true);
     utterance.onend = () => {
       setIsBotSpeaking(false);
-      // Auto-start listening after bot finishes speaking (if not muted)
       if (!isMuted && callState === 'connected') {
-        startListening();
+        startListening(currentLang);
       }
     };
     utterance.onerror = () => setIsBotSpeaking(false);
@@ -161,8 +221,8 @@ export const PhoneBotModal: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Speech-To-Text (Microphone)
-  const startListening = () => {
+  // ─── SPEECH-TO-TEXT (MICROPHONE RECOGNITION) ───
+  const startListening = (lang: SupportedBotLang = botLang) => {
     const win = window as IWindow;
     const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
 
@@ -174,13 +234,18 @@ export const PhoneBotModal: React.FC = () => {
       }
 
       const recognition = new SpeechRecognition();
-      recognition.lang = 'hi-IN'; // Also handles English words naturally
+      const langCodeMap: Record<string, string> = {
+        hi: 'hi-IN',
+        mr: 'mr-IN',
+        ta: 'ta-IN',
+        te: 'te-IN',
+        en: 'en-IN',
+      };
+      recognition.lang = langCodeMap[lang] || 'hi-IN';
       recognition.continuous = false;
       recognition.interimResults = true;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
+      recognition.onstart = () => setIsListening(true);
 
       recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
@@ -189,17 +254,12 @@ export const PhoneBotModal: React.FC = () => {
         setCurrentSpeechTranscript(transcript);
 
         if (event.results[0].isFinal) {
-          handleUserUtterance(transcript);
+          handleUserUtterance(transcript, lang);
         }
       };
 
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
 
       speechRecognitionRef.current = recognition;
       recognition.start();
@@ -215,8 +275,8 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // Process user speech or button click
-  const handleUserUtterance = (query: string) => {
+  // Process user input
+  const handleUserUtterance = (query: string, lang: SupportedBotLang = botLang) => {
     if (!query.trim()) return;
 
     stopListening();
@@ -225,8 +285,13 @@ export const PhoneBotModal: React.FC = () => {
     const userTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setMessages((prev) => [...prev, { sender: 'farmer', text: query, time: userTime }]);
 
-    // Bot generates response
-    const botRes: BotResponse = processBotQuery(query, crops, bookings, currentUser?.district || 'Indore');
+    const botRes: BotResponse = processBotQuery(
+      query,
+      crops,
+      bookings,
+      currentUser?.district || 'Indore',
+      lang
+    );
 
     setTimeout(() => {
       setMessages((prev) => [
@@ -238,7 +303,7 @@ export const PhoneBotModal: React.FC = () => {
           quickActions: botRes.quickActions,
         },
       ]);
-      speakText(botRes.spokenText);
+      speakText(botRes.spokenText, lang);
 
       if (botRes.smsContent) {
         addNotification({
@@ -248,6 +313,27 @@ export const PhoneBotModal: React.FC = () => {
         });
       }
     }, 400);
+  };
+
+  const handleLanguageChange = (newLang: SupportedBotLang) => {
+    setBotLang(newLang);
+    playFeedbackTone('ping');
+    if (callState === 'connected') {
+      const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || 'किसान भाई');
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: greeting.displayText,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          quickActions: [
+            { label: '🌾 भाव / Rates', action: 'भाव' },
+            { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+          ],
+        },
+      ]);
+      speakText(greeting.spokenText, newLang);
+    }
   };
 
   const handleKeypadPress = (digit: string) => {
@@ -266,6 +352,10 @@ export const PhoneBotModal: React.FC = () => {
   const endCall = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
+    }
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current = null;
     }
     stopListening();
     setCallState('ended');
@@ -289,14 +379,37 @@ export const PhoneBotModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
       {/* Mobile Phone Device Container */}
-      <div className="bg-slate-900 text-white w-full max-w-sm rounded-[36px] shadow-2xl overflow-hidden border-4 border-slate-700/80 flex flex-col h-[650px] relative">
-        {/* Phone Top Notch / Speaker Bar */}
-        <div className="pt-3 pb-2 px-6 flex items-center justify-between text-[11px] text-slate-400 select-none shrink-0 border-b border-slate-800">
+      <div className="bg-slate-900 text-white w-full max-w-sm rounded-[36px] shadow-2xl overflow-hidden border-4 border-slate-700/80 flex flex-col h-[660px] relative">
+        {/* Phone Top Notch / Header Bar */}
+        <div className="pt-3 pb-2 px-5 flex items-center justify-between text-[11px] text-slate-400 select-none shrink-0 border-b border-slate-800">
           <span className="font-semibold text-slate-300">1800-180-1551</span>
-          <div className="w-12 h-3.5 bg-slate-800 rounded-full border border-slate-700" />
+          <div className="w-12 h-3 bg-slate-800 rounded-full border border-slate-700" />
           <div className="flex items-center gap-1 font-mono text-[10px] text-emerald-400">
-            <span>HD Voice</span>
+            <span>Neural 4G</span>
             <span>📶</span>
+          </div>
+        </div>
+
+        {/* ────────── MULTILINGUAL LANGUAGE BAR ────────── */}
+        <div className="bg-slate-950/90 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between gap-1 overflow-x-auto shrink-0">
+          <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0 mr-1">
+            <Globe className="w-3 h-3 text-emerald-400" />
+            <span className="font-semibold">Voice:</span>
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {BOT_LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => handleLanguageChange(lang.code)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer shrink-0 border ${
+                  botLang === lang.code
+                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-xs'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
+                }`}
+              >
+                {lang.flag} {lang.nativeName}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -311,6 +424,10 @@ export const PhoneBotModal: React.FC = () => {
                 <h3 className="text-xl font-extrabold text-white">APMC Mandi Helpdesk</h3>
                 <p className="text-xs text-emerald-400 font-medium mt-1">KisanTrack Automated Outbound Call</p>
                 <p className="text-xs text-slate-400 mt-1">Toll-Free: 1800-180-1551</p>
+                <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-950 text-emerald-400 text-[10px] font-mono rounded-full border border-emerald-800">
+                  <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                  <span>Edge-TTS Neural Voice: {activeLangConfig.voice.split('-')[0].toUpperCase()}</span>
+                </div>
               </div>
             </div>
 
@@ -329,7 +446,7 @@ export const PhoneBotModal: React.FC = () => {
               </button>
 
               <button
-                onClick={connectCall}
+                onClick={() => connectCall()}
                 className="py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl font-bold text-sm flex flex-col items-center justify-center gap-1 transition cursor-pointer shadow-lg shadow-emerald-600/30 animate-bounce"
               >
                 <PhoneCall className="w-6 h-6" />
@@ -373,7 +490,10 @@ export const PhoneBotModal: React.FC = () => {
                     <span className="font-bold text-xs text-white">किसान फोन बॉट</span>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   </div>
-                  <span className="text-[11px] font-mono text-emerald-400 font-semibold">{formatTimer(callDuration)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-emerald-400 font-semibold">{formatTimer(callDuration)}</span>
+                    <span className="text-[9px] text-slate-400 font-mono">• {activeLangConfig.voice.split('-')[1]} Neural</span>
+                  </div>
                 </div>
               </div>
 
@@ -440,7 +560,7 @@ export const PhoneBotModal: React.FC = () => {
             {showKeypad && (
               <div className="p-3 bg-slate-950/95 border-t border-slate-800 animate-slide-up shrink-0">
                 <div className="text-[10px] text-slate-400 text-center mb-2 font-mono">
-                  IVR Keypad: 1=Token | 2=MSP | 3=Queue | 4=Book | 9=Officer
+                  IVR: 1=Token | 2=MSP | 3=Queue | 4=Book | 9=Officer
                 </div>
                 <div className="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
                   {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((k) => (
@@ -456,7 +576,7 @@ export const PhoneBotModal: React.FC = () => {
               </div>
             )}
 
-            {/* Quick Text Input for non-voice mode */}
+            {/* Quick Text Input */}
             <div className="px-3 py-2 bg-slate-900 border-t border-slate-800/80 flex gap-2 shrink-0">
               <input
                 type="text"
@@ -468,7 +588,7 @@ export const PhoneBotModal: React.FC = () => {
                     setTextInput('');
                   }
                 }}
-                placeholder="बोलें या यहाँ लिखें (Type or speak)..."
+                placeholder="बोलें या लिखें (Speak or type)..."
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               />
               <button
@@ -500,7 +620,7 @@ export const PhoneBotModal: React.FC = () => {
                     ? 'bg-red-600 text-white animate-pulse ring-2 ring-red-400'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 }`}
-                title={isListening ? 'Listening... Tap to stop' : 'Tap and speak in Hindi/English'}
+                title={isListening ? 'Listening... Tap to stop' : 'Tap to speak'}
               >
                 <Mic className="w-5 h-5" />
                 <span className="text-[8px] font-bold mt-0.5">{isListening ? 'सुन रहे हैं' : 'बोलें'}</span>
@@ -525,7 +645,7 @@ export const PhoneBotModal: React.FC = () => {
                 }`}
               >
                 {isSpeakerOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'Speaker' : 'Mute Voice'}</span>
+                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'Speaker' : 'Mute'}</span>
               </button>
 
               {/* End Call Button */}

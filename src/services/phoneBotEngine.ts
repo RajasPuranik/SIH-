@@ -1,4 +1,4 @@
-import { CropInfo, SlotBooking, DistrictMandiRate } from '../types';
+import { CropInfo, SlotBooking } from '../types';
 
 export interface BotResponse {
   spokenText: string;
@@ -7,34 +7,115 @@ export interface BotResponse {
   smsContent?: string;
 }
 
+export type SupportedBotLang = 'hi' | 'mr' | 'ta' | 'te' | 'en';
+
+export const BOT_LANGUAGES: { code: SupportedBotLang; label: string; nativeName: string; voice: string; flag: string }[] = [
+  { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी', voice: 'hi-IN-SwaraNeural', flag: '🇮🇳' },
+  { code: 'mr', label: 'Marathi', nativeName: 'मराठी', voice: 'mr-IN-AarohiNeural', flag: '🚩' },
+  { code: 'ta', label: 'Tamil', nativeName: 'தமிழ்', voice: 'ta-IN-PallaviNeural', flag: '🌴' },
+  { code: 'te', label: 'Telugu', nativeName: 'తెలుగు', voice: 'te-IN-ShrutiNeural', flag: '🏛️' },
+  { code: 'en', label: 'English', nativeName: 'English (IN)', voice: 'en-IN-NeerjaExpressiveNeural', flag: '🇬🇧' },
+];
+
+export const getInitialGreeting = (lang: SupportedBotLang, farmerName: string = 'किसान भाई', isOutbound: boolean = false, tokenNum?: string): { spokenText: string; displayText: string } => {
+  if (isOutbound) {
+    const token = tokenNum || 'KT-MP-2026-9041';
+    switch (lang) {
+      case 'mr':
+        return {
+          spokenText: `नमस्कार ${farmerName}! हा एपीएमसी कृषी उत्पन्न बाजार समितीकडून ऑटोमेटेड कॉल आहे. तुमचा टोकन ${token} सत्यापित झाला आहे. आपण मंडीमध्ये येऊ शकता.`,
+          displayText: `🔔 **स्वयंचलित कॉल (मराठी):** टोकन ${token} गेट 3 वर मंजूर झाला आहे.`
+        };
+      case 'ta':
+        return {
+          spokenText: `வணக்கம் ${farmerName}! இது உழவர் சந்தை அலுவலகத்திலிருந்து தானியங்கி அழைப்பு. உங்கள் டோக்கன் எண் ${token} சரிபார்க்கப்பட்டது. நீங்கள் சந்தைக்கு வரலாம்.`,
+          displayText: `🔔 **தானியங்கி குரல் அழைப்பு (தமிழ்):** டோக்கன் ${token} கேட் 3-ல் அங்கீகரிக்கப்பட்டது.`
+        };
+      case 'te':
+        return {
+          spokenText: `నమస్కారం ${farmerName}! ఇది మార్కెట్ కమిటీ నుండి ఆటోమేటెడ్ వాయిస్ కాల్. మీ టోకెన్ ${token} ధృవీకరించబడింది. మీరు పంట తీసుకురావచ్చు.`,
+          displayText: `🔔 **ఆటోమేటెడ్ కాల్ (తెలుగు):** టోకెన్ ${token} గేట్ 3 వద్ద ఆమోదించబడింది.`
+        };
+      case 'en':
+        return {
+          spokenText: `Hello ${farmerName}! This is an automated voice alert from APMC Mandi. Your token ${token} has been verified for Gate 3 entry. You can arrive at your scheduled time.`,
+          displayText: `🔔 **Automated Voice Alert:** Token ${token} is approved for Gate 3 entry.`
+        };
+      default: // hi
+        return {
+          spokenText: `नमस्कार ${farmerName} जी! यह एपीएमसी मंडी कार्यालय से ऑटोमेटेड अपडेट है। आपका टोकन ${token} सत्यापित हो चुका है। आप अपनी उपज लेकर आ सकते हैं।`,
+          displayText: `🔔 **लाइव वॉइस अलर्ट:** टोकन ${token} गेट 3 पर सत्यापित हो चुका है।`
+        };
+    }
+  }
+
+  // Inbound Greetings
+  switch (lang) {
+    case 'mr':
+      return {
+        spokenText: `नमस्कार ${farmerName}! किसानट्रॅक 24x7 व्हॉइस हेल्पलाईनवर आपले स्वागत आहे. आपण बाजारभाव, टोकन स्थिती किंवा स्लॉट बुकिंगबद्दल विचारू शकता.`,
+        displayText: `🙏 **नमस्कार शेतकरी बंधूंनो!** मी किसानट्रॅक फोन बॉट आहे.\n• "गव्हाचा आजचा भाव काय आहे?"\n• "माझ्या टोकनची स्थिती काय आहे?"\n• "मंडीमध्ये किती गर्दी आहे?"`
+      };
+    case 'ta':
+      return {
+        spokenText: `வணக்கம் ${farmerName}! கிசான் ட்ராக் 24 மணி நேர வாய்ஸ் உதவி மையத்திற்கு வரவேற்கிறோம். சந்தை விலை, டோக்கன் நிலை அல்லது ஸ்லாட் முன்பதிவு பற்றி கேட்கலாம்.`,
+        displayText: `🙏 **வணக்கம் விவசாய நண்பரே!** நான் கிசான் ட்ராக் போன் பாட்.\n• "கோதுமையின் இன்றைய விலை என்ன?"\n• "எனது டோக்கன் நிலை என்ன?"\n• "சந்தையில் எவ்வளவு கூட்டம் இருக்கிறது?"`
+      };
+    case 'te':
+      return {
+        spokenText: `నమస్కారం ${farmerName}! కిసాన్‌ట్రాక్ 24 గంటల వాయిస్ హెల్ప్‌లైన్‌కు స్వాగతం. మీరు నేటి మార్కెట్ ధరలు, టోకెన్ స్థితి లేదా స్లాట్ బుకింగ్ గురించి అడగవచ్చు.`,
+        displayText: `🙏 **నమస్కారం రైతు సోదరులారా!** నేను కిసాన్‌ట్రాక్ ఫోన్ బాట్‌ని.\n• "గోధుమ నేటి ధర ఎంత?"\n• "నా టోకెన్ స్థితి ఏమిటి?"\n• "మార్కెట్‌లో రద్దీ ఎలా ఉంది?"`
+      };
+    case 'en':
+      return {
+        spokenText: `Hello ${farmerName}! Welcome to KisanTrack 24x7 Voice Helpline. I am your AI phone assistant. You can ask me about live MSP rates, token status, or slot bookings.`,
+        displayText: `🙏 **Hello Farmer!** I am your KisanTrack Phone Bot.\n• "What is today's wheat price?"\n• "What is my token status?"\n• "How crowded is the mandi today?"`
+      };
+    default: // hi
+      return {
+        spokenText: `नमस्कार ${farmerName} जी! किसानट्रैक 24x7 वॉइस हेल्पलाइन में आपका स्वागत है। मैं आपका डिजिटल फोन सहायक हूँ। आप मंडी भाव, टोकन स्थिति, या स्लॉट बुकिंग के बारे में पूछ सकते हैं।`,
+        displayText: `🙏 **नमस्ते किसान भाई!** मैं किसानट्रैक फोन बॉट हूँ। आप मुझसे पूछ सकते हैं:\n• "गेहूँ का आज का भाव क्या है?"\n• "मेरे टोकन की स्थिति क्या है?"\n• "इंदौर मंडी में कितनी भीड़ है?"`
+      };
+  }
+};
+
 export const processBotQuery = (
   rawQuery: string,
   crops: CropInfo[],
   bookings: SlotBooking[],
   userDistrict: string = 'Indore',
-  language: string = 'hi'
+  language: SupportedBotLang = 'hi'
 ): BotResponse => {
   const q = rawQuery.toLowerCase().trim();
+
+  // Helper to find crop
+  const findCrop = () => {
+    return (
+      crops.find((c) => q.includes(c.id) || q.includes(c.name.toLowerCase()) || q.includes(c.hindiName.toLowerCase())) ||
+      crops.find((c) => c.id === 'wheat') ||
+      crops[0]
+    );
+  };
 
   // 1. GREETING
   if (
     q.includes('hello') ||
     q.includes('namaste') ||
     q.includes('नमस्ते') ||
+    q.includes('नमस्कार') ||
+    q.includes('வணக்கம்') ||
+    q.includes('నమస్కారం') ||
     q.includes('ram ram') ||
-    q.includes('राम राम') ||
-    q.includes('hi') ||
-    q.includes('प्रणाम')
+    q.includes('hi')
   ) {
+    const greeting = getInitialGreeting(language);
     return {
-      spokenText:
-        'नमस्ते किसान भाई! मैं किसानट्रैक वॉइस बॉट हूँ। आप मुझसे मंडी भाव, टोकन स्थिति, या स्लॉट बुकिंग के बारे में पूछ सकते हैं। आप क्या जानना चाहते हैं?',
-      displayText:
-        '🙏 नमस्ते किसान भाई! मैं किसानट्रैक फोन बॉट हूँ। आप मुझसे पूछ सकते हैं:\n• "गेहूँ का आज का भाव क्या है?"\n• "मेरे टोकन की स्थिति क्या है?"\n• "इंदौर मंडी में कितनी भीड़ है?"',
+      spokenText: greeting.spokenText,
+      displayText: greeting.displayText,
       quickActions: [
-        { label: '🌾 गेहूँ का भाव', action: 'गेहूँ का भाव' },
-        { label: '📋 टोकन स्थिति', action: 'टोकन स्थिति' },
-        { label: '🏛️ इंदौर मंडी भीड़', action: 'मंडी भीड़' },
+        { label: '🌾 भाव / Rates', action: 'भाव' },
+        { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+        { label: '🏛️ भीड़ / Queue', action: 'मंडी भीड़' },
       ],
     };
   }
@@ -47,36 +128,45 @@ export const processBotQuery = (
     q.includes('स्थिति') ||
     q.includes('gate') ||
     q.includes('गेट') ||
-    q.includes('ट्रैकिंग') ||
+    q.includes('நிலை') ||
+    q.includes('స్థితి') ||
     q === '1'
   ) {
     const activeBooking = bookings[0];
     if (activeBooking) {
-      const stageMap: Record<string, string> = {
-        BOOKED: 'स्लॉट बुक हो चुका है',
-        IN_TRANSIT: 'रास्ते में हैं',
-        ARRIVED_AT_GATE: 'गेट नंबर 3 पर पहुँच चुके हैं',
-        QUALITY_VERIFIED: 'गुणवत्ता जाँच ग्रेड-ए पास हो चुकी है',
-        WEIGHED: 'वजन तुला पूर्ण हो चुका है',
-        MSP_BILLED: 'बिल जनरेट हो चुका है',
-        PAYMENT_COMPLETED: 'खाते में डायरेक्ट बेनिफिट ट्रांसफर सफल हो चुका है',
-      };
-      const stageHindi = stageMap[activeBooking.status] || activeBooking.status;
+      const stage = activeBooking.status.replace(/_/g, ' ');
 
-      return {
-        spokenText: `किसान भाई, आपका टोकन नंबर ${activeBooking.tokenNumber.split('-').slice(-2).join(' ')} है। आपकी वर्तमान स्थिति ${stageHindi}। आपकी मंडी ${activeBooking.mandiName} है और अनुमानित गेट प्रतीक्षा समय 12 मिनट है।`,
-        displayText: `📋 **टोकन विवरण:**\n• **टोकन:** ${activeBooking.tokenNumber}\n• **स्थिति:** ${stageHindi}\n• **मंडी:** ${activeBooking.mandiName}\n• **फसल:** ${activeBooking.cropName}\n• **गेट प्रतीक्षा:** ~12 मिनट`,
-        quickActions: [
-          { label: '📱 SMS पर टोकन भेजें', action: 'SMS_TOKEN' },
-          { label: '🌾 सरसों का भाव', action: 'सरसों का भाव' },
-        ],
-        smsContent: `KisanTrack: Token ${activeBooking.tokenNumber} status is [${activeBooking.status}]. Mandi: ${activeBooking.mandiName}. Gate 3.`,
-      };
-    } else {
-      return {
-        spokenText: 'किसान भाई, आपके पास अभी कोई सक्रिय टोकन नहीं है। क्या आप नया स्लॉट बुक करना चाहते हैं?',
-        displayText: 'आपके पास अभी कोई सक्रिय टोकन नहीं मिला। नया स्लॉट बुक करने के लिए बोलें "स्लॉट बुक करें"।',
-      };
+      if (language === 'mr') {
+        return {
+          spokenText: `शेतकरी बंधू, तुमचा टोकन नंबर ${activeBooking.tokenNumber} आहे. तुमची सद्यस्थिती ${stage} आहे. गेट नंबर 3 वर अंदाजे प्रतीक्षा वेळ 12 मिनिटे आहे.`,
+          displayText: `📋 **टोकन तपशील (मराठी):**\n• टोकन: ${activeBooking.tokenNumber}\n• स्थिती: ${stage}\n• मंडी: ${activeBooking.mandiName}\n• गेट प्रतीक्षा: ~12 मिनिटे`,
+          smsContent: `KisanTrack: Token ${activeBooking.tokenNumber} status is [${stage}]. Mandi: ${activeBooking.mandiName}.`,
+        };
+      } else if (language === 'ta') {
+        return {
+          spokenText: `விவசாயி அவர்களே, உங்கள் டோக்கன் எண் ${activeBooking.tokenNumber}. தற்போதைய நிலை ${stage}. கேட் 3-ல் காத்திருப்பு நேரம் சுமார் 12 நிமிடங்கள்.`,
+          displayText: `📋 **டோக்கன் விவரங்கள் (தமிழ்):**\n• டோக்கன்: ${activeBooking.tokenNumber}\n• நிலை: ${stage}\n• சந்தை: ${activeBooking.mandiName}`,
+          smsContent: `KisanTrack: Token ${activeBooking.tokenNumber} status is [${stage}]. Mandi: ${activeBooking.mandiName}.`,
+        };
+      } else if (language === 'te') {
+        return {
+          spokenText: `రైతు సోదరా, మీ టోకెన్ సంఖ్య ${activeBooking.tokenNumber}. ప్రస్తుత స్థితి ${stage}. గేట్ 3 వద్ద సుమారు నిరీక్షణ సమయం 12 నిమిషాలు.`,
+          displayText: `📋 **టోకెన్ వివరాలు (తెలుగు):**\n• టోకెన్: ${activeBooking.tokenNumber}\n• స్థితి: ${stage}\n• మార్కెట్: ${activeBooking.mandiName}`,
+          smsContent: `KisanTrack: Token ${activeBooking.tokenNumber} status is [${stage}]. Mandi: ${activeBooking.mandiName}.`,
+        };
+      } else if (language === 'en') {
+        return {
+          spokenText: `Farmer friend, your token number is ${activeBooking.tokenNumber}. Your current status is ${stage}. Estimated gate waiting time is 12 minutes at ${activeBooking.mandiName}.`,
+          displayText: `📋 **Token Status (English):**\n• Token: ${activeBooking.tokenNumber}\n• Status: ${stage}\n• Mandi: ${activeBooking.mandiName}\n• Gate Wait: ~12 mins`,
+          smsContent: `KisanTrack: Token ${activeBooking.tokenNumber} status is [${stage}]. Mandi: ${activeBooking.mandiName}.`,
+        };
+      } else {
+        return {
+          spokenText: `किसान भाई, आपका टोकन नंबर ${activeBooking.tokenNumber} है। आपकी वर्तमान स्थिति ${stage} है। इंदौर मंडी गेट नंबर 3 पर औसत प्रतीक्षा समय 12 मिनट है।`,
+          displayText: `📋 **टोकन विवरण (हिन्दी):**\n• **टोकन:** ${activeBooking.tokenNumber}\n• **स्थिति:** ${stage}\n• **मंडी:** ${activeBooking.mandiName}\n• **गेट प्रतीक्षा:** ~12 मिनट`,
+          smsContent: `KisanTrack: Token ${activeBooking.tokenNumber} status is [${stage}]. Mandi: ${activeBooking.mandiName}.`,
+        };
+      }
     }
   }
 
@@ -88,33 +178,40 @@ export const processBotQuery = (
     q.includes('msp') ||
     q.includes('price') ||
     q.includes('दाम') ||
-    q.includes('मूल्य') ||
+    q.includes('விலை') ||
+    q.includes('ధర') ||
     q === '2'
   ) {
-    let matchedCrop = crops.find(
-      (c) =>
-        q.includes(c.id) ||
-        q.includes(c.name.toLowerCase()) ||
-        q.includes(c.hindiName.toLowerCase())
-    );
-
-    if (!matchedCrop) {
-      matchedCrop = crops.find((c) => c.id === 'wheat') || crops[0];
-    }
-
-    const diff = matchedCrop.currentPrivatePrice - matchedCrop.mspRate;
+    const crop = findCrop();
+    const diff = crop.currentPrivatePrice - crop.mspRate;
     const isHigher = diff > 0;
 
-    return {
-      spokenText: `आज ${matchedCrop.hindiName} का सरकारी समर्थन मूल्य ₹${matchedCrop.mspRate} प्रति क्विंटल है। और प्राइवेट मंडी में भाव ₹${matchedCrop.currentPrivatePrice} चल रहा है, जो कि समर्थन मूल्य से ₹${Math.abs(diff)} ${isHigher ? 'अधिक' : 'कम'} है।`,
-      displayText: `🌾 **${matchedCrop.name} आज का भाव:**\n• **सरकारी MSP:** ₹${matchedCrop.mspRate}/क्विंटल\n• **प्राइवेट बाजार भाव:** ₹${matchedCrop.currentPrivatePrice}/क्विंटल\n• **अंतर:** ${isHigher ? '+' : '-'}₹${Math.abs(diff)} (${isHigher ? 'प्राइवेट में अधिक लाभ' : 'सरकारी में बेचें'})`,
-      quickActions: [
-        { label: '🌾 सोयाबीन भाव', action: 'सोयाबीन का भाव' },
-        { label: '🌾 चना भाव', action: 'चना का भाव' },
-        { label: '📅 स्लॉट बुक करें', action: 'स्लॉट बुक करें' },
-      ],
-      smsContent: `KisanTrack: ${matchedCrop.name} Official MSP is Rs ${matchedCrop.mspRate}/Qtl. Private rate: Rs ${matchedCrop.currentPrivatePrice}/Qtl.`,
-    };
+    if (language === 'mr') {
+      return {
+        spokenText: `आज ${crop.name}चा हमीभाव ₹${crop.mspRate} प्रति क्विंटल आहे आणि खाजगी बाजारात भाव ₹${crop.currentPrivatePrice} चालू आहे.`,
+        displayText: `🌾 **${crop.name} आजचा भाव (मराठी):**\n• शासकीय हमीभाव (MSP): ₹${crop.mspRate}/क्विंटल\n• खाजगी बाजार भाव: ₹${crop.currentPrivatePrice}/क्विंटल\n• नफा: ${isHigher ? '+' : ''}₹${diff}`,
+      };
+    } else if (language === 'ta') {
+      return {
+        spokenText: `இன்று ${crop.name} குறைந்தபட்ச ஆதரவு விலை குவிண்டாலுக்கு ₹${crop.mspRate}. தனியார் சந்தை விலை ₹${crop.currentPrivatePrice}.`,
+        displayText: `🌾 **${crop.name} விலை (தமிழ்):**\n• அரசு MSP: ₹${crop.mspRate}/குவிண்டால்\n• சந்தை விலை: ₹${crop.currentPrivatePrice}/குவிண்டால்`,
+      };
+    } else if (language === 'te') {
+      return {
+        spokenText: `నేడు ${crop.name} కనీస మద్దతు ధర క్వింటాలుకు ₹${crop.mspRate}. ప్రైవేట్ మార్కెట్ ధర ₹${crop.currentPrivatePrice} నడుస్తోంది.`,
+        displayText: `🌾 **${crop.name} ధర (తెలుగు):**\n• ప్రభుత్వ మద్దతు ధర (MSP): ₹${crop.mspRate}/క్వింటాల్\n• ప్రైవేట్ మార్కెట్ ధర: ₹${crop.currentPrivatePrice}/క్వింటాల్`,
+      };
+    } else if (language === 'en') {
+      return {
+        spokenText: `Today, the official government MSP for ${crop.name} is ₹${crop.mspRate} per quintal. The private market rate is ₹${crop.currentPrivatePrice}, which is ₹${Math.abs(diff)} ${isHigher ? 'higher' : 'lower'}.`,
+        displayText: `🌾 **${crop.name} Rates (English):**\n• Official MSP: ₹${crop.mspRate}/Qtl\n• Private Market Price: ₹${crop.currentPrivatePrice}/Qtl\n• Spread: ${isHigher ? '+' : '-'}₹${Math.abs(diff)}`,
+      };
+    } else {
+      return {
+        spokenText: `आज ${crop.hindiName} का सरकारी समर्थन मूल्य ₹${crop.mspRate} प्रति क्विंटल है। और प्राइवेट मंडी में भाव ₹${crop.currentPrivatePrice} चल रहा है, जो कि समर्थन मूल्य से ₹${Math.abs(diff)} ${isHigher ? 'अधिक' : 'कम'} है।`,
+        displayText: `🌾 **${crop.name} आज का भाव:**\n• **सरकारी MSP:** ₹${crop.mspRate}/क्विंटल\n• **प्राइवेट बाजार भाव:** ₹${crop.currentPrivatePrice}/क्विंटल\n• **अंतर:** ${isHigher ? '+' : '-'}₹${Math.abs(diff)} (${isHigher ? 'प्राइवेट में अधिक लाभ' : 'सरकारी में बेचें'})`,
+      };
+    }
   }
 
   // 4. MANDI CONGESTION / QUEUE
@@ -122,76 +219,67 @@ export const processBotQuery = (
     q.includes('mandi') ||
     q.includes('मंडी') ||
     q.includes('भीड़') ||
+    q.includes('गर्दी') ||
+    q.includes('கூட்டம்') ||
+    q.includes('రద్దీ') ||
     q.includes('queue') ||
-    q.includes('line') ||
     q.includes('wait') ||
-    q.includes('इंतजार') ||
     q === '3'
   ) {
+    switch (language) {
+      case 'mr':
+        return {
+          spokenText: `इंदूर कृषी उत्पन्न बाजार समितीत सामान्य गर्दी आहे. गेट नंबर 3 वर सरासरी प्रतीक्षा वेळ 18 मिनिटे आहे आणि 4 रॅम्प पूर्णपणे कार्यरत आहेत.`,
+          displayText: `🏛️ **इंदूर एपीएमसी मंडी थेट स्थिती (मराठी):**\n• गर्दी पातळी: सामान्य\n• गेट प्रतीक्षा वेळ: ~18 मिनिटे\n• कार्यरत रॅम्प: 4 चालू`
+        };
+      case 'ta':
+        return {
+          spokenText: `இந்தூர் சந்தையில் கூட்டம் மிதமாக உள்ளது. கேட் 3-ல் சராசரி காத்திருப்பு நேரம் 18 நிமிடங்கள் மட்டுமே. 4 ராம்ப்கள் செயல்படுகின்றன.`,
+          displayText: `🏛️ **சந்தை நிலை (தமிழ்):**\n• கூட்ட நிலை: மிதமானது\n• காத்திருப்பு நேரம்: ~18 நிமிடங்கள்`
+        };
+      case 'te':
+        return {
+          spokenText: `ఇండోర్ మార్కెట్‌లో రద్దీ సాధారణంగా ఉంది. గేట్ 3 వద్ద సగటు వేచి ఉండే సమయం 18 నిమిషాలు. 4 ర్యాంప్‌లు పనిచేస్తున్నాయి.`,
+          displayText: `🏛️ **మార్కెట్ రద్దీ స్థితి (తెలుగు):**\n• రద్దీ: సాధారణం\n• నిరీక్షణ సమయం: ~18 నిమిషాలు`
+        };
+      case 'en':
+        return {
+          spokenText: `Indore APMC Mandi has moderate traffic today. Average wait time at Gate 3 is approximately 18 minutes with 4 active unloading ramps.`,
+          displayText: `🏛️ **Indore APMC Live Congestion (English):**\n• Congestion Level: Moderate (Normal)\n• Gate Wait Time: ~18 minutes\n• Active Ramps: 4 of 6 open`
+        };
+      default:
+        return {
+          spokenText: `इंदौर कृषि उपज मंडी में वर्तमान में सामान्य भीड़ है। गेट नंबर 3 पर औसत प्रतीक्षा समय केवल 18 मिनट है और 4 रैंप सक्रिय रूप से चालू हैं।`,
+          displayText: `🏛️ **इंदौर एपीएमसी मंडी लाइव स्थिति (हिन्दी):**\n• **भीड़ स्तर:** मध्यम (Normal)\n• **गेट प्रतीक्षा:** ~18 मिनट\n• **सक्रिय रैंप:** 4 / 6 चालू`
+        };
+    }
+  }
+
+  // 5. APMC OFFICER / HELPDESK
+  if (q.includes('officer') || q.includes('अधिकारी') || q.includes('help') || q.includes('helpdesk') || q === '9') {
     return {
       spokenText:
-        'इंदौर कृषि उपज मंडी में वर्तमान में सामान्य भीड़ है। गेट नंबर 3 पर औसत प्रतीक्षा समय केवल 18 मिनट है और 4 रैंप सक्रिय रूप से चालू हैं। आप आराम से अपनी उपज ला सकते हैं।',
-      displayText:
-        '🏛️ **इंदौर एपीएमसी मंडी लाइव स्थिति:**\n• **भीड़ स्तर:** मध्यम (Normal)\n• **गेट प्रतीक्षा:** ~18 मिनट\n• **सक्रिय रैंप:** 4 / 6 चालू\n• **सुझाव:** सुबह 10 बजे से दोपहर 12 बजे का स्लॉट सबसे तेज है।',
-      quickActions: [
-        { label: '📅 स्लॉट बुक करें', action: 'स्लॉट बुक करें' },
-        { label: '🌾 गेहूँ भाव', action: 'गेहूँ भाव' },
-      ],
+        language === 'en'
+          ? 'Connecting your call to APMC Mandi Officer Dr. Sunita Chouhan at Gate 3. You can also dial toll-free 1800-180-1551 directly.'
+          : 'आपकी कॉल इंदौर मंडी सहायता डेस्क अधिकारी डॉ. सुनीता चौहान से जोड़ी जा रही है। टोल-फ्री 1800-180-1551 24 घंटे उपलब्ध है।',
+      displayText: `📞 **APMC Mandi Helpdesk:**\n• Officer: Dr. Sunita Chouhan (Gate 3 In-Charge)\n• Phone: +91 94250 11920\n• Toll-Free: 1800-180-1551 (24x7)`,
     };
   }
 
-  // 5. BOOKING ASSISTANCE
-  if (
-    q.includes('book') ||
-    q.includes('booking') ||
-    q.includes('बुक') ||
-    q.includes('slot') ||
-    q.includes('स्लॉट') ||
-    q === '4'
-  ) {
-    return {
-      spokenText:
-        'स्लॉट बुक करने के लिए आपका इंदौर मंडी में कल सुबह 10:30 बजे का समय उपलब्ध है। क्या आप 65 क्विंटल गेहूँ के लिए यह समय पक्का करना चाहते हैं?',
-      displayText:
-        '📅 **स्लॉट बुकिंग सहायता:**\n• **मंडी:** इंदौर एपीएमसी\n• **उपलब्ध समय:** कल सुबह 10:30 AM - 11:45 AM\n• **फसल:** गेहूँ (Sharbati)\n• **अनुमानित टोकन:** KT-MP-2026-LIVE',
-      quickActions: [
-        { label: '✅ हाँ, स्लॉट पक्का करें', action: 'CONFIRM_SLOT' },
-        { label: '❌ कोई दूसरा समय', action: 'CHANGE_TIME' },
-      ],
-    };
-  }
-
-  // 6. APMC OFFICER / HELPDESK
-  if (
-    q.includes('officer') ||
-    q.includes('अधिकारी') ||
-    q.includes('help') ||
-    q.includes('बात') ||
-    q.includes('शिकायत') ||
-    q === '9'
-  ) {
-    return {
-      spokenText:
-        'आपकी कॉल इंदौर मंडी सहायता डेस्क अधिकारी डॉ. सुनीता चौहान से जोड़ी जा रही है। कृपया लाइन पर बने रहें। आप टोल-फ्री 1551 पर भी सीधे संपर्क कर सकते हैं।',
-      displayText:
-        '📞 **सहायता डेस्क संपर्क:**\n• **अधिकारी:** डॉ. सुनीता चौहान (गेट प्रभारी)\n• **फोन:** +91 94250 11920\n• **टोल-फ्री हेल्पलाइन:** 1800-180-1551 (24x7)',
-      quickActions: [
-        { label: '📞 1551 पर कॉल करें', action: 'CALL_1551' },
-        { label: '📋 टोकन स्थिति', action: 'टोकन स्थिति' },
-      ],
-    };
-  }
-
-  // DEFAULT FALLBACK
+  // DEFAULT
   return {
     spokenText:
-      'माफ़ कीजिये, मैं समझ नहीं पाया। आप बोल सकते हैं: गेहूँ का भाव, मेरा टोकन स्थिति, या मंडी में भीड़ कितनी है।',
+      language === 'en'
+        ? 'You can ask me about wheat, mustard, or soybean rates, check your token queue status, or inquire about mandi waiting times.'
+        : 'आप मुझसे गेहूँ, सरसों, या सोयाबीन का भाव पूछ सकते हैं, अपने टोकन की स्थिति जान सकते हैं, या मंडी में भीड़ के बारे में पूछ सकते हैं।',
     displayText:
-      '🤖 **मैं आपकी इन विषयों पर सहायता कर सकता हूँ:**\n• "गेहूँ / सरसों / सोयाबीन का भाव"\n• "मेरे टोकन की स्थिति"\n• "मंडी में कितनी लाइन है"\n• "स्लॉट कैसे बुक करें"',
+      language === 'en'
+        ? '🤖 **You can ask me:**\n• "Today\'s wheat or mustard MSP rate"\n• "Check my token status"\n• "Mandi queue waiting time"'
+        : '🤖 **आप मुझसे पूछ सकते हैं:**\n• "गेहूँ / सरसों / सोयाबीन का भाव"\n• "मेरे टोकन की स्थिति"\n• "मंडी में कितनी लाइन है"',
     quickActions: [
-      { label: '🌾 गेहूँ भाव', action: 'गेहूँ का भाव' },
-      { label: '📋 टोकन स्थिति', action: 'टोकन स्थिति' },
-      { label: '🏛️ मंडी भीड़', action: 'मंडी भीड़' },
+      { label: '🌾 भाव / Rates', action: 'भाव' },
+      { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+      { label: '🏛️ मंडी भीड़ / Queue', action: 'मंडी भीड़' },
     ],
   };
 };
