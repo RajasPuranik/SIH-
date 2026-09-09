@@ -17,6 +17,7 @@ import {
   Building2,
   CheckCircle2,
   Globe,
+  AlertCircle,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -27,7 +28,6 @@ import {
   getInitialGreeting,
 } from '../../services/phoneBotEngine';
 
-// TypeScript declarations for Web Speech API
 interface IWindow extends Window {
   SpeechRecognition?: any;
   webkitSpeechRecognition?: any;
@@ -57,10 +57,17 @@ export const PhoneBotModal: React.FC = () => {
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [currentSpeechTranscript, setCurrentSpeechTranscript] = useState('');
+  const [micStatusMsg, setMicStatusMsg] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
 
   // Audio element reference for Edge-TTS neural speech playback
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
+  // Recognition Control Refs
+  const wantListeningRef = useRef(false);
+  const isBotSpeakingRef = useRef(false);
+  const silenceTimerRef = useRef<any>(null);
+  const accumulatedTranscriptRef = useRef('');
 
   // Conversation transcript
   const [messages, setMessages] = useState<
@@ -110,7 +117,7 @@ export const PhoneBotModal: React.FC = () => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, currentSpeechTranscript]);
 
   const connectCall = (targetLang?: SupportedBotLang) => {
     const lang = targetLang || botLang;
@@ -146,7 +153,11 @@ export const PhoneBotModal: React.FC = () => {
   const speakText = (text: string, currentLang: SupportedBotLang = botLang) => {
     if (!isSpeakerOn) return;
 
-    // Cancel any active speech synthesis or audio
+    // Stop microphone listening while bot is speaking so bot doesn't transcribe itself
+    stopListening();
+    isBotSpeakingRef.current = true;
+    setIsBotSpeaking(true);
+
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -164,18 +175,22 @@ export const PhoneBotModal: React.FC = () => {
 
       audio.onplay = () => {
         setIsBotSpeaking(true);
+        isBotSpeakingRef.current = true;
       };
 
       audio.onended = () => {
         setIsBotSpeaking(false);
+        isBotSpeakingRef.current = false;
         audioElementRef.current = null;
+        // Turn microphone on for user's turn
         if (!isMuted && callState === 'connected') {
-          startListening(currentLang);
+          setTimeout(() => {
+            startListening(currentLang);
+          }, 300);
         }
       };
 
       audio.onerror = () => {
-        // Fallback to client Web Speech API if Vite dev server middleware is unreachable
         fallbackSpeakText(text, currentLang);
       };
 
@@ -188,7 +203,11 @@ export const PhoneBotModal: React.FC = () => {
   };
 
   const fallbackSpeakText = (text: string, currentLang: SupportedBotLang) => {
-    if (!('speechSynthesis' in window)) return;
+    if (!('speechSynthesis' in window)) {
+      setIsBotSpeaking(false);
+      isBotSpeakingRef.current = false;
+      return;
+    }
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
@@ -209,30 +228,66 @@ export const PhoneBotModal: React.FC = () => {
       utterance.voice = matchedVoice;
     }
 
-    utterance.onstart = () => setIsBotSpeaking(true);
+    utterance.onstart = () => {
+      setIsBotSpeaking(true);
+      isBotSpeakingRef.current = true;
+    };
+
     utterance.onend = () => {
       setIsBotSpeaking(false);
+      isBotSpeakingRef.current = false;
       if (!isMuted && callState === 'connected') {
-        startListening(currentLang);
+        setTimeout(() => {
+          startListening(currentLang);
+        }, 300);
       }
     };
-    utterance.onerror = () => setIsBotSpeaking(false);
+
+    utterance.onerror = () => {
+      setIsBotSpeaking(false);
+      isBotSpeakingRef.current = false;
+    };
 
     window.speechSynthesis.speak(utterance);
   };
 
-  // ─── SPEECH-TO-TEXT (MICROPHONE RECOGNITION) ───
-  const startListening = (lang: SupportedBotLang = botLang) => {
+  // ─── ROBUST CONTINUOUS SPEECH-TO-TEXT (MICROPHONE) ───
+  const startListening = async (lang: SupportedBotLang = botLang) => {
     const win = window as IWindow;
     const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+      setMicStatusMsg('Speech recognition not supported in this browser. Please use Chrome/Edge.');
+      return;
+    }
+
+    // Explicitly prompt/verify microphone permissions
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        console.warn('Microphone permission not granted:', err);
+        setMicStatusMsg('Microphone blocked. Please allow mic access in your browser address bar.');
+        setIsListening(false);
+        wantListeningRef.current = false;
+        return;
+      }
+    }
+
+    wantListeningRef.current = true;
+    setMicStatusMsg(null);
+
+    // Clean up any existing recognition instance safely
+    if (speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.onend = null;
+        speechRecognitionRef.current.onerror = null;
+        speechRecognitionRef.current.abort();
+      } catch {}
+      speechRecognitionRef.current = null;
+    }
 
     try {
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      }
-
       const recognition = new SpeechRecognition();
       const langCodeMap: Record<string, string> = {
         hi: 'hi-IN',
@@ -242,37 +297,99 @@ export const PhoneBotModal: React.FC = () => {
         en: 'en-IN',
       };
       recognition.lang = langCodeMap[lang] || 'hi-IN';
-      recognition.continuous = false;
+      // Continuous mode prevents the browser from automatically shutting down on 1 second of silence
+      recognition.continuous = true;
       recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-      recognition.onstart = () => setIsListening(true);
+      recognition.onstart = () => {
+        setIsListening(true);
+        setMicStatusMsg(null);
+      };
 
       recognition.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0].transcript)
-          .join('');
-        setCurrentSpeechTranscript(transcript);
+        let interimText = '';
+        let finalText = '';
 
-        if (event.results[0].isFinal) {
-          handleUserUtterance(transcript, lang);
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalText += event.results[i][0].transcript + ' ';
+          } else {
+            interimText += event.results[i][0].transcript;
+          }
+        }
+
+        const combined = (accumulatedTranscriptRef.current + ' ' + finalText + ' ' + interimText).trim();
+        setCurrentSpeechTranscript(combined);
+
+        // Reset silence timer on every new word
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+        }
+
+        // When user speaks something substantial, debounce 1.8 seconds of silence to auto-submit
+        if (combined.length > 2) {
+          silenceTimerRef.current = setTimeout(() => {
+            const queryToSend = combined;
+            accumulatedTranscriptRef.current = '';
+            setCurrentSpeechTranscript('');
+            stopListening();
+            handleUserUtterance(queryToSend, lang);
+          }, 1800);
         }
       };
 
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
+      recognition.onerror = (event: any) => {
+        // "no-speech" is normal when user is thinking; do NOT kill listening
+        if (event.error === 'no-speech') {
+          return;
+        }
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setMicStatusMsg('Microphone blocked. Click the lock icon in the browser address bar to allow.');
+          setIsListening(false);
+          wantListeningRef.current = false;
+        }
+      };
+
+      recognition.onend = () => {
+        // Automatically restart if user still wants mic on and bot is not speaking
+        if (wantListeningRef.current && !isBotSpeakingRef.current) {
+          setTimeout(() => {
+            if (wantListeningRef.current && !isBotSpeakingRef.current) {
+              try {
+                recognition.start();
+              } catch {
+                setIsListening(false);
+              }
+            }
+          }, 200);
+        } else {
+          setIsListening(false);
+        }
+      };
 
       speechRecognitionRef.current = recognition;
       recognition.start();
-    } catch {
+    } catch (err) {
+      console.warn('SpeechRecognition start failed:', err);
       setIsListening(false);
+      wantListeningRef.current = false;
     }
   };
 
   const stopListening = () => {
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.stop();
-      setIsListening(false);
+    wantListeningRef.current = false;
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
     }
+    if (speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.onend = null;
+        speechRecognitionRef.current.stop();
+      } catch {}
+      speechRecognitionRef.current = null;
+    }
+    setIsListening(false);
   };
 
   // Process user input
@@ -280,6 +397,7 @@ export const PhoneBotModal: React.FC = () => {
     if (!query.trim()) return;
 
     stopListening();
+    accumulatedTranscriptRef.current = '';
     setCurrentSpeechTranscript('');
 
     const userTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -318,6 +436,7 @@ export const PhoneBotModal: React.FC = () => {
   const handleLanguageChange = (newLang: SupportedBotLang) => {
     setBotLang(newLang);
     playFeedbackTone('ping');
+    stopListening();
     if (callState === 'connected') {
       const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || 'किसान भाई');
       setMessages((prev) => [
@@ -350,6 +469,8 @@ export const PhoneBotModal: React.FC = () => {
   };
 
   const endCall = () => {
+    wantListeningRef.current = false;
+    isBotSpeakingRef.current = false;
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -365,6 +486,7 @@ export const PhoneBotModal: React.FC = () => {
       setCallDuration(0);
       setMessages([]);
       setShowKeypad(false);
+      setMicStatusMsg(null);
     }, 600);
   };
 
@@ -379,7 +501,7 @@ export const PhoneBotModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
       {/* Mobile Phone Device Container */}
-      <div className="bg-slate-900 text-white w-full max-w-sm rounded-[36px] shadow-2xl overflow-hidden border-4 border-slate-700/80 flex flex-col h-[660px] relative">
+      <div className="bg-slate-900 text-white w-full max-w-sm rounded-[36px] shadow-2xl overflow-hidden border-4 border-slate-700/80 flex flex-col h-[670px] relative">
         {/* Phone Top Notch / Header Bar */}
         <div className="pt-3 pb-2 px-5 flex items-center justify-between text-[11px] text-slate-400 select-none shrink-0 border-b border-slate-800">
           <span className="font-semibold text-slate-300">1800-180-1551</span>
@@ -426,13 +548,13 @@ export const PhoneBotModal: React.FC = () => {
                 <p className="text-xs text-slate-400 mt-1">Toll-Free: 1800-180-1551</p>
                 <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-950 text-emerald-400 text-[10px] font-mono rounded-full border border-emerald-800">
                   <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-                  <span>Edge-TTS Neural Voice: {activeLangConfig.voice.split('-')[0].toUpperCase()}</span>
+                  <span>Edge-TTS: {activeLangConfig.voice.split('-')[1]}</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-slate-800/80 rounded-2xl p-3 border border-slate-700/60 max-w-xs text-xs text-slate-300 leading-relaxed">
-              🔔 <strong className="text-white">Live Voice Alert:</strong> Slot status verification &amp; priority entry update for your booked vehicle.
+              🔔 <strong className="text-white">Live Voice Alert:</strong> Slot status verification &amp; priority entry update for your vehicle.
             </div>
 
             {/* Accept / Decline Buttons */}
@@ -492,7 +614,7 @@ export const PhoneBotModal: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono text-emerald-400 font-semibold">{formatTimer(callDuration)}</span>
-                    <span className="text-[9px] text-slate-400 font-mono">• {activeLangConfig.voice.split('-')[1]} Neural</span>
+                    <span className="text-[9px] text-slate-400 font-mono">• {activeLangConfig.voice.split('-')[1]}</span>
                   </div>
                 </div>
               </div>
@@ -546,12 +668,35 @@ export const PhoneBotModal: React.FC = () => {
                 </div>
               ))}
 
-              {/* Real-time speech recognition preview */}
+              {/* Real-time speech recognition preview & Send button */}
               {currentSpeechTranscript && (
-                <div className="flex items-end justify-end">
-                  <div className="p-2.5 bg-emerald-700/60 text-emerald-100 rounded-xl rounded-tr-none text-xs border border-emerald-500/50 animate-pulse">
-                    🎙️ {currentSpeechTranscript}...
+                <div className="flex flex-col items-end gap-1 animate-fade-in">
+                  <div className="p-2.5 bg-emerald-700/80 text-emerald-50 rounded-xl rounded-tr-none text-xs border border-emerald-400/60 shadow-md">
+                    <div className="flex items-center gap-1.5 mb-1 text-[10px] text-emerald-200 font-bold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span>सुन रहे हैं (Hearing you):</span>
+                    </div>
+                    <div>"{currentSpeechTranscript}"</div>
                   </div>
+                  <button
+                    onClick={() => {
+                      const text = currentSpeechTranscript;
+                      setCurrentSpeechTranscript('');
+                      stopListening();
+                      handleUserUtterance(text);
+                    }}
+                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[10px] rounded-lg transition cursor-pointer flex items-center gap-1 shadow-sm"
+                  >
+                    <span>✓ तुरंत भेजें (Send Now)</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Status or error banner */}
+              {micStatusMsg && (
+                <div className="p-2 bg-amber-950/80 border border-amber-500/50 rounded-xl text-[10px] text-amber-200 text-center flex items-center justify-center gap-1.5 animate-fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>{micStatusMsg}</span>
                 </div>
               )}
             </div>
@@ -620,10 +765,10 @@ export const PhoneBotModal: React.FC = () => {
                     ? 'bg-red-600 text-white animate-pulse ring-2 ring-red-400'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 }`}
-                title={isListening ? 'Listening... Tap to stop' : 'Tap to speak'}
+                title={isListening ? 'Listening continuously... Tap to stop' : 'Tap to speak'}
               >
                 <Mic className="w-5 h-5" />
-                <span className="text-[8px] font-bold mt-0.5">{isListening ? 'सुन रहे हैं' : 'बोलें'}</span>
+                <span className="text-[8px] font-bold mt-0.5">{isListening ? 'चालू है' : 'बोलें'}</span>
               </button>
 
               {/* Keypad toggle */}
