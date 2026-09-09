@@ -26,6 +26,7 @@ import {
   SupportedBotLang,
   BOT_LANGUAGES,
   getInitialGreeting,
+  detectLanguageFromText,
 } from '../../services/phoneBotEngine';
 import { AudioRecorder, transcribeWavWithApi } from '../../services/audioRecorder';
 
@@ -327,7 +328,7 @@ export const PhoneBotModal: React.FC = () => {
     try {
       const recorder = new AudioRecorder({
         sampleRate: 16000,
-        silenceDurationMs: 1100,
+        silenceDurationMs: 650,
         speechThreshold: 0.010,
         botSpeakingThreshold: 0.035,
         isBotSpeaking: () => isBotSpeakingRef.current,
@@ -401,7 +402,14 @@ export const PhoneBotModal: React.FC = () => {
       setIsProcessingAudio(false);
 
       if (res.success && res.transcript && res.transcript.trim()) {
-        handleUserUtterance(res.transcript.trim(), lang);
+        const text = res.transcript.trim();
+        // Auto-detect language from spoken words or server result for instant multilingual matching
+        const detected = ((res as any).lang as SupportedBotLang) || detectLanguageFromText(text);
+        const activeLang: SupportedBotLang = detected || lang || botLang;
+        if (activeLang !== botLang) {
+          setBotLang(activeLang);
+        }
+        handleUserUtterance(text, activeLang);
       }
     } catch (err) {
       console.error('STT transcribing error:', err);
@@ -431,7 +439,7 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // Process user input
+  // Process user input with ZERO artificial delay
   const handleUserUtterance = (query: string, lang: SupportedBotLang = botLang) => {
     if (!query.trim()) return;
 
@@ -466,26 +474,25 @@ export const PhoneBotModal: React.FC = () => {
       lang
     );
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: 'bot',
-          text: botRes.displayText,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          quickActions: botRes.quickActions,
-        },
-      ]);
-      speakText(botRes.spokenText, lang);
+    // Speak and display immediately with zero delay
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: 'bot',
+        text: botRes.displayText,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        quickActions: botRes.quickActions,
+      },
+    ]);
+    speakText(botRes.spokenText, lang);
 
-      if (botRes.smsContent) {
-        addNotification({
-          type: 'SMS',
-          title: 'SMS Sent to Phone',
-          message: botRes.smsContent,
-        });
-      }
-    }, 350);
+    if (botRes.smsContent) {
+      addNotification({
+        type: 'SMS',
+        title: 'SMS Sent to Phone',
+        message: botRes.smsContent,
+      });
+    }
   };
 
   const handleLanguageChange = (newLang: SupportedBotLang) => {

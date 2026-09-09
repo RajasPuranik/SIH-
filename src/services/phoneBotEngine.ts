@@ -79,6 +79,44 @@ export const getInitialGreeting = (lang: SupportedBotLang, farmerName: string = 
   }
 };
 
+/**
+ * Detect language from transcript text based on Unicode script and vocabulary
+ */
+export const detectLanguageFromText = (text: string): SupportedBotLang | null => {
+  if (!text || !text.trim()) return null;
+  // Tamil script block: U+0B80 - U+0BFF
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta';
+  // Telugu script block: U+0C00 - U+0C7F
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'te';
+  // Devanagari script block: U+0900 - U+097F (Hindi & Marathi)
+  if (/[\u0900-\u097F]/.test(text)) {
+    const marathiKeywords = [
+      'आहे', 'काय', 'गहू', 'कांदा', 'सांगा', 'गर्दी', 'कसा', 'कशी', 'हवामान',
+      'पाऊस', 'करा', 'होय', 'नाही', 'चालू', 'दर', 'भाव', 'शेतकरी', 'पाहिजे'
+    ];
+    const words = text.split(/\s+/);
+    if (words.some((w) => marathiKeywords.includes(w))) {
+      return 'mr';
+    }
+    return 'hi';
+  }
+  // English words detection
+  if (/[a-zA-Z]/.test(text)) {
+    return 'en';
+  }
+  return null;
+};
+
+const CROP_SYNONYMS: { id: string; terms: string[] }[] = [
+  { id: 'wheat', terms: ['wheat', 'गेहूं', 'गेहूँ', 'कनक', 'गहू', 'गव्हाचा', 'கோதுமை', 'கோதூமை', 'గోధుమ', 'గోధుమలు'] },
+  { id: 'soybean', terms: ['soybean', 'soya', 'सोयाबीन', 'सोया', 'सोयाबीनचा', 'சோயாபீன்', 'சோயா', 'సోయాబీన్', 'సోయా'] },
+  { id: 'mustard', terms: ['mustard', 'sarson', 'सरसों', 'राई', 'मोहरी', 'கடுகு', 'ఆవాలు'] },
+  { id: 'onion', terms: ['onion', 'प्याज', 'प्याज़', 'कांदा', 'कांद्याचा', 'வெங்காயம்', 'உల్లిపాయ', 'ఉల్లి'] },
+  { id: 'cotton', terms: ['cotton', 'कपास', 'रुई', 'कापूस', 'कपाशी', 'பருத்தி', 'పత్తి', 'ప్రత్తి'] },
+  { id: 'gram', terms: ['gram', 'chana', 'चना', 'चने', 'हरभरा', 'கொண்டைக்கடலை', 'கடலை', 'శనగలు'] },
+  { id: 'maize', terms: ['maize', 'corn', 'मक्का', 'मका', 'भुट्टा', 'மக்காச்சோளம்', 'மக்கா சோளம்', 'మొక్కజొన్న'] },
+];
+
 export const processBotQuery = (
   rawQuery: string,
   crops: CropInfo[],
@@ -88,8 +126,14 @@ export const processBotQuery = (
 ): BotResponse => {
   const q = rawQuery.toLowerCase().trim();
 
-  // Helper to find crop
+  // Helper to find crop across Hindi, Marathi, Tamil, Telugu, English
   const findCrop = () => {
+    for (const syn of CROP_SYNONYMS) {
+      if (syn.terms.some((t) => q.includes(t.toLowerCase()))) {
+        const found = crops.find((c) => c.id === syn.id || c.name.toLowerCase().includes(syn.id));
+        if (found) return found;
+      }
+    }
     return (
       crops.find((c) => q.includes(c.id) || q.includes(c.name.toLowerCase()) || q.includes(c.hindiName.toLowerCase())) ||
       crops.find((c) => c.id === 'wheat') ||
@@ -131,12 +175,100 @@ export const processBotQuery = (
     };
   }
 
-  // 2. TOKEN STATUS
+  // 2. WEATHER / FORECAST
+  if (
+    q.includes('weather') ||
+    q.includes('rain') ||
+    q.includes('मौसम') ||
+    q.includes('बारिश') ||
+    q.includes('पानी') ||
+    q.includes('तापमान') ||
+    q.includes('हवामान') ||
+    q.includes('पाऊस') ||
+    q.includes('வானிலை') ||
+    q.includes('மழை') ||
+    q.includes('వాతావరణం') ||
+    q.includes('వర్షం')
+  ) {
+    switch (language) {
+      case 'mr':
+        return {
+          spokenText: `आज इंदूर परिसरात हवामान निरभ्र राहील, कमाल तापमान 31 अंश आणि पावसाची शक्यता फक्त 10 टक्के आहे. शेतमालाच्या वाहतुकीसाठी हवामान अनुकूल आहे.`,
+          displayText: `🌤️ **हवामान अंदाज (मराठी):**\n• हवामान: निरभ्र ऊन\n• तापमान: 31°C | आर्द्रता: 45%\n• पाऊस शक्यता: 10% (अनुकूल स्थिती)`,
+        };
+      case 'ta':
+        return {
+          spokenText: `இன்று இந்தூர் பகுதியில் வானிலை தெளிவாக இருக்கும், வெப்பநிலை 31 டிகிரி மற்றும் மழை வாய்ப்பு 10 சதவீதம் மட்டுமே. பயிர் கொண்டு வர சாதகமானது.`,
+          displayText: `🌤️ **வானிலை அறிக்கை (தமிழ்):**\n• வானிலை: தெளிவான வெயில்\n• வெப்பநிலை: 31°C\n• மழை வாய்ப்பு: 10% (சாதகமானது)`,
+        };
+      case 'te':
+        return {
+          spokenText: `నేడు ఇండోర్ పరిసరాలలో వాతావరణం పొడిగా ఉంటుంది, ఉష్ణోగ్రత 31 డిగ్రీలు మరియు వర్షం పడే అవకాశం కేవలం 10 శాతం మాత్రమే. పంట రవాణాకు అనుకూలం.`,
+          displayText: `🌤️ **వాతావరణ సమాచారం (తెలుగు):**\n• వాతావరణం: ఎండగా ఉంటుంది\n• ఉష్ణోగ్రత: 31°C\n• వర్ష సూచన: 10% (రవాణాకు అనుకూలం)`,
+        };
+      case 'en':
+        return {
+          spokenText: `Today's weather in Indore is clear and sunny with a high of 31 degrees Celsius and only a 10 percent chance of rain. Ideal conditions for transporting produce to the mandi.`,
+          displayText: `🌤️ **Weather Forecast (Indore):**\n• Condition: Clear & Sunny\n• Temperature: 31°C | Humidity: 45%\n• Rain Probability: 10% (Safe for unloading)`,
+        };
+      default:
+        return {
+          spokenText: `आज इंदौर क्षेत्र में मौसम साफ और धूप वाला रहेगा, तापमान 31 डिग्री रहेगा और बारिश की संभावना केवल 10 प्रतिशत है। फसल मंडी लाने के लिए मौसम अनुकूल है।`,
+          displayText: `🌤️ **मौसम पूर्वानुमान (इंदौर):**\n• **मौसम:** साफ धूप (Sunny)\n• **तापमान:** 31°C | **नमी:** 45%\n• **बारिश की संभावना:** 10% (परिवहन हेतु सुरक्षित)`,
+        };
+    }
+  }
+
+  // 3. SLOT BOOKING
+  if (
+    q.includes('book') ||
+    q.includes('booking') ||
+    q.includes('slot') ||
+    q.includes('स्लॉट') ||
+    q.includes('बुकिंग') ||
+    q.includes('नवीन टोकन') ||
+    q.includes('नया टोकन') ||
+    q.includes('मुன்பதிவு') ||
+    q.includes('స్లాట్') ||
+    q.includes('బుకింగ్') ||
+    q === '4'
+  ) {
+    switch (language) {
+      case 'mr':
+        return {
+          spokenText: `नवीन स्लॉट बुक करण्यासाठी, कृपया डॅशबोर्डवरील 'स्लॉट बुकिंग' पर्यायावर जा. आज संध्याकाळी 4 वाजताचे स्लॉट उपलब्ध आहेत.`,
+          displayText: `📦 **स्लॉट बुकिंग (मराठी):**\n• आजचे उपलब्ध स्लॉट: संध्याकाळी 4:00 ते 6:00\n• गेट: गेट नंबर 3\n• आपण ॲपमधून त्वरित बुक करू शकता.`,
+        };
+      case 'ta':
+        return {
+          spokenText: `புதிய ஸ்லாட் பதிவு செய்ய, முகப்பு பக்கத்தில் உள்ள ஸ்லாட் புக்கிங் பகுதிக்கு செல்லவும். இன்று மாலை 4 மணிக்கு ஸ்லாட்டுகள் உள்ளன.`,
+          displayText: `📦 **ஸ்லாட் முன்பதிவு (தமிழ்):**\n• கிடைக்கும் நேரம்: மாலை 4:00 - 6:00\n• கேட்: கேட் 3\n• செயலியில் நேரடியாக முன்பதிவு செய்யலாம்.`,
+        };
+      case 'te':
+        return {
+          spokenText: `కొత్త స్లాట్ బుకింగ్ కోసం, దయచేసి యాప్‌లోని స్లాట్ బుకింగ్ విభాగానికి వెళ్ళండి. నేడు సాయంత్రం 4 గంటలకు స్లాట్‌లు అందుబాటులో ఉన్నాయి.`,
+          displayText: `📦 **స్లాట్ బుకింగ్ (తెలుగు):**\n• లభ్యమయ్యే సమయం: సాయంత్రం 4:00 - 6:00\n• గేట్: గేట్ 3\n• యాప్‌లో వెంటనే బుక్ చేసుకోండి.`,
+        };
+      case 'en':
+        return {
+          spokenText: `To book a new unloading slot, visit the Slot Booking tab on the dashboard. Free slots are open today from 4:00 PM to 6:00 PM at Gate 3.`,
+          displayText: `📦 **Slot Booking:**\n• Available Today: 4:00 PM - 6:00 PM\n• Ramp: Gate 3\n• Tap "Book Slot" on the home dashboard to confirm.`,
+        };
+      default:
+        return {
+          spokenText: `नया स्लॉट बुक करने के लिए, कृपया होम स्क्रीन पर 'स्लॉट बुकिंग' पर जाएँ। आज शाम 4 से 6 बजे तक के स्लॉट गेट 3 पर उपलब्ध हैं।`,
+          displayText: `📦 **स्लॉट बुकिंग (हिन्दी):**\n• **उपलब्ध समय:** आज शाम 4:00 - 6:00\n• **गेट:** गेट नंबर 3\n• ऐप के मुख्य पेज से सीधे स्लॉट आरक्षित करें।`,
+        };
+    }
+  }
+
+  // 4. TOKEN STATUS
   if (
     q.includes('token') ||
     q.includes('टोकन') ||
     q.includes('status') ||
     q.includes('स्थिति') ||
+    q.includes('स्थिती') ||
     q.includes('gate') ||
     q.includes('गेट') ||
     q.includes('நிலை') ||
@@ -181,16 +313,21 @@ export const processBotQuery = (
     }
   }
 
-  // 3. CROP RATES / MSP
+  // 5. CROP RATES / MSP
   if (
     q.includes('rate') ||
     q.includes('bhav') ||
     q.includes('भाव') ||
+    q.includes('दर') ||
+    q.includes('किंमत') ||
     q.includes('msp') ||
     q.includes('price') ||
     q.includes('दाम') ||
+    q.includes('रेट') ||
     q.includes('விலை') ||
+    q.includes('ரேட்') ||
     q.includes('ధర') ||
+    q.includes('రేటు') ||
     q === '2'
   ) {
     const crop = findCrop();
@@ -225,14 +362,17 @@ export const processBotQuery = (
     }
   }
 
-  // 4. MANDI CONGESTION / QUEUE
+  // 6. MANDI CONGESTION / QUEUE
   if (
     q.includes('mandi') ||
     q.includes('मंडी') ||
     q.includes('भीड़') ||
     q.includes('गर्दी') ||
+    q.includes('रांग') ||
     q.includes('கூட்டம்') ||
+    q.includes('வரிசை') ||
     q.includes('రద్దీ') ||
+    q.includes('క్యూ') ||
     q.includes('queue') ||
     q.includes('wait') ||
     q === '3'
@@ -266,31 +406,97 @@ export const processBotQuery = (
     }
   }
 
-  // 5. APMC OFFICER / HELPDESK
-  if (q.includes('officer') || q.includes('अधिकारी') || q.includes('help') || q.includes('helpdesk') || q === '9') {
-    return {
-      spokenText:
-        language === 'en'
-          ? 'Connecting your call to APMC Mandi Officer Dr. Sunita Chouhan at Gate 3. You can also dial toll-free 1800-180-1551 directly.'
-          : 'आपकी कॉल इंदौर मंडी सहायता डेस्क अधिकारी डॉ. सुनीता चौहान से जोड़ी जा रही है। टोल-फ्री 1800-180-1551 24 घंटे उपलब्ध है।',
-      displayText: `📞 **APMC Mandi Helpdesk:**\n• Officer: Dr. Sunita Chouhan (Gate 3 In-Charge)\n• Phone: +91 94250 11920\n• Toll-Free: 1800-180-1551 (24x7)`,
-    };
+  // 7. APMC OFFICER / HELPDESK
+  if (
+    q.includes('officer') ||
+    q.includes('अधिकारी') ||
+    q.includes('help') ||
+    q.includes('helpdesk') ||
+    q.includes('मदत') ||
+    q.includes('உதவி') ||
+    q.includes('సహాయం') ||
+    q === '9'
+  ) {
+    switch (language) {
+      case 'mr':
+        return {
+          spokenText: `आपला कॉल इंदूर कृषी बाजार समितीचे अधिकारी डॉ. सुनीता चौहान यांच्याशी जोडला जात आहे. आपण 1800-180-1551 वर थेट संपर्क करू शकता.`,
+          displayText: `📞 **एपीएमसी मदत कक्ष (मराठी):**\n• अधिकारी: डॉ. सुनीता चौहान (गेट 3 प्रभारी)\n• फोन: +91 94250 11920\n• टोल-फ्री: 1800-180-1551 (24x7)`,
+        };
+      case 'ta':
+        return {
+          spokenText: `உங்கள் அழைப்பு இந்தூர் சந்தை அலுவலர் டாக்டர் சுனிதா சௌஹானுடன் இணைக்கப்படுகிறது. 1800-180-1551 என்ற எண்ணில் நேரடியாக தொடர்பு கொள்ளலாம்.`,
+          displayText: `📞 **உதவி மையம் (தமிழ்):**\n• அலுவலர்: டாக்டர் சுனிதா சௌஹான்\n• தொலைபேசி: +91 94250 11920\n• கட்டணமில்லா எண்: 1800-180-1551`,
+        };
+      case 'te':
+        return {
+          spokenText: `మీ కాల్ ఇండోర్ మార్కెట్ అధికారి డాక్టర్ సునీతా చౌహాన్ కు బదిలీ చేయబడుతోంది. 1800-180-1551 కు నేరుగా డయల్ చేయవచ్చు.`,
+          displayText: `📞 **సహాయ కేంద్రం (తెలుగు):**\n• అధికారి: డాక్టర్ సునీతా చౌహాన్\n• ఫోన్: +91 94250 11920\n• టోల్ ఫ్రీ: 1800-180-1551`,
+        };
+      case 'en':
+        return {
+          spokenText: `Connecting your call to APMC Mandi Officer Dr. Sunita Chouhan at Gate 3. You can also dial toll-free 1800-180-1551 directly.`,
+          displayText: `📞 **APMC Mandi Helpdesk:**\n• Officer: Dr. Sunita Chouhan (Gate 3 In-Charge)\n• Phone: +91 94250 11920\n• Toll-Free: 1800-180-1551 (24x7)`,
+        };
+      default:
+        return {
+          spokenText: `आपकी कॉल इंदौर मंडी सहायता डेस्क अधिकारी डॉ. सुनीता चौहान से जोड़ी जा रही है। टोल-फ्री 1800-180-1551 24 घंटे उपलब्ध है।`,
+          displayText: `📞 **APMC Mandi Helpdesk:**\n• Officer: Dr. Sunita Chouhan (Gate 3 In-Charge)\n• Phone: +91 94250 11920\n• Toll-Free: 1800-180-1551 (24x7)`,
+        };
+    }
   }
 
-  // DEFAULT
-  return {
-    spokenText:
-      language === 'en'
-        ? 'You can ask me about wheat, mustard, or soybean rates, check your token queue status, or inquire about mandi waiting times.'
-        : 'आप मुझसे गेहूँ, सरसों, या सोयाबीन का भाव पूछ सकते हैं, अपने टोकन की स्थिति जान सकते हैं, या मंडी में भीड़ के बारे में पूछ सकते हैं।',
-    displayText:
-      language === 'en'
-        ? '🤖 **You can ask me:**\n• "Today\'s wheat or mustard MSP rate"\n• "Check my token status"\n• "Mandi queue waiting time"'
-        : '🤖 **आप मुझसे पूछ सकते हैं:**\n• "गेहूँ / सरसों / सोयाबीन का भाव"\n• "मेरे टोकन की स्थिति"\n• "मंडी में कितनी लाइन है"',
-    quickActions: [
-      { label: '🌾 भाव / Rates', action: 'भाव' },
-      { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
-      { label: '🏛️ मंडी भीड़ / Queue', action: 'मंडी भीड़' },
-    ],
-  };
+  // 8. DEFAULT FALLBACK (NATIVE FOR ALL 5 LANGUAGES)
+  switch (language) {
+    case 'mr':
+      return {
+        spokenText: `आपण मला गहू, सोयाबीन किंवा कांद्याचा भाव विचारू शकता, टोकन स्थिती तपासू शकता किंवा मंडीतील गर्दीबद्दल विचारू शकता.`,
+        displayText: `🤖 **आपण विचारू शकता (मराठी):**\n• "गव्हाचा किंवा कांद्याचा आजचा भाव"\n• "माझ्या टोकनची स्थिती काय आहे?"\n• "मंडीत किती गर्दी आहे?"\n• "आजचे हवामान कसे राहील?"`,
+        quickActions: [
+          { label: '🌾 आजचा भाव', action: 'भाव' },
+          { label: '📋 टोकन स्थिती', action: 'टोकन स्थिती' },
+          { label: '🏛️ मंडी गर्दी', action: 'गर्दी' },
+        ],
+      };
+    case 'ta':
+      return {
+        spokenText: `நீங்கள் கோதுமை, சோயாபீன் அல்லது வெங்காயத்தின் விலையை கேட்கலாம், உங்கள் டோக்கன் நிலையை சரிபார்க்கலாம் அல்லது சந்தை கூட்டத்தை அறியலாம்.`,
+        displayText: `🤖 **நீங்கள் கேட்கலாம் (தமிழ்):**\n• "இன்றைய கோதுமை அல்லது வெங்காய விலை"\n• "என் டோக்கன் நிலை என்ன?"\n• "சந்தையில் எவ்வளவு கூட்டம் இருக்கிறது?"\n• "இன்றைய வானிலை எப்படி?"`,
+        quickActions: [
+          { label: '🌾 இன்றைய விலை', action: 'விலை' },
+          { label: '📋 டோக்கன் நிலை', action: 'டோக்கன் நிலை' },
+          { label: '🏛️ சந்தை கூட்டம்', action: 'கூட்டம்' },
+        ],
+      };
+    case 'te':
+      return {
+        spokenText: `మీరు నన్ను గోధుమ, సోయాబీన్ లేదా ఉల్లిపాయ ధరల గురించి అడగవచ్చు, టోకెన్ స్థితిని తనిఖీ చేయవచ్చు లేదా మార్కెట్ రద్దీ గురించి తెలుసుకోవచ్చు.`,
+        displayText: `🤖 **మీరు అడగవచ్చు (తెలుగు):**\n• "నేటి గోధుమ లేదా ఉల్లిపాయ ధర"\n• "నా టోకెన్ స్థితి ఏమిటి?"\n• "మార్కెట్‌లో రద్దీ ఎంత ఉంది?"\n• "నేటి వాతావरणం ఎలా ఉంది?"`,
+        quickActions: [
+          { label: '🌾 నేటి ధర', action: 'ధర' },
+          { label: '📋 టోకెన్ స్థితి', action: 'టోకెన్ స్థితి' },
+          { label: '🏛️ మార్కెట్ రద్దీ', action: 'రద్దీ' },
+        ],
+      };
+    case 'en':
+      return {
+        spokenText: `You can ask me about wheat, mustard, or soybean rates, check your token queue status, or inquire about mandi waiting times.`,
+        displayText: `🤖 **You can ask me:**\n• "Today's wheat or mustard MSP rate"\n• "Check my token status"\n• "Mandi queue waiting time"\n• "Today's weather forecast"`,
+        quickActions: [
+          { label: '🌾 Rates', action: 'rates' },
+          { label: '📋 Token Status', action: 'token status' },
+          { label: '🏛️ Mandi Queue', action: 'queue' },
+        ],
+      };
+    default:
+      return {
+        spokenText: `आप मुझसे गेहूँ, सरसों, या सोयाबीन का भाव पूछ सकते हैं, अपने टोकन की स्थिति जान सकते हैं, या मंडी में भीड़ के बारे में पूछ सकते हैं।`,
+        displayText: `🤖 **आप मुझसे पूछ सकते हैं:**\n• "गेहूँ / सरसों / सोयाबीन का भाव"\n• "मेरे टोकन की स्थिति"\n• "मंडी में कितनी लाइन है"\n• "आज का मौसम कैसा रहेगा"`,
+        quickActions: [
+          { label: '🌾 भाव / Rates', action: 'भाव' },
+          { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+          { label: '🏛️ मंडी भीड़ / Queue', action: 'मंडी भीड़' },
+        ],
+      };
+  }
 };

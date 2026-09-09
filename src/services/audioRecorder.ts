@@ -30,7 +30,7 @@ export class AudioRecorder {
   constructor(options: AudioRecorderOptions = {}) {
     this.options = {
       sampleRate: 16000,
-      silenceDurationMs: 1100,
+      silenceDurationMs: 650,
       speechThreshold: 0.010,
       botSpeakingThreshold: 0.035,
       ...options,
@@ -160,7 +160,7 @@ export class AudioRecorder {
                 if (this.options.onSilenceTimeout) {
                   this.options.onSilenceTimeout();
                 }
-              }, this.options.silenceDurationMs || 1100);
+              }, this.options.silenceDurationMs || 650);
             }
           } else {
             // Speech has not started yet; maintain a rolling 3-chunk pre-roll buffer (~384ms)

@@ -2,9 +2,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { spawn } from 'child_process'
-import fs from 'fs'
 import path from 'path'
-import os from 'os'
 
 const VOICE_MAP: Record<string, string> = {
   hi: 'hi-IN-SwaraNeural',
@@ -14,6 +12,9 @@ const VOICE_MAP: Record<string, string> = {
   en: 'en-IN-NeerjaExpressiveNeural',
   pa: 'hi-IN-MadhurNeural',
 }
+
+// In-memory cache for ultra-fast instant playback of repeated responses
+const ttsCache = new Map<string, Buffer>()
 
 function edgeTtsPlugin(): Plugin {
   return {
@@ -32,29 +33,49 @@ function edgeTtsPlugin(): Plugin {
             return
           }
 
-          const tmpFile = path.join(os.tmpdir(), `tts_${Date.now()}_${Math.random().toString(36).slice(2)}.mp3`)
+          const cacheKey = `${voice}:${text.trim()}`
+          const cached = ttsCache.get(cacheKey)
+          if (cached) {
+            res.writeHead(200, {
+              'Content-Type': 'audio/mpeg',
+              'Content-Length': cached.length,
+              'Cache-Control': 'public, max-age=86400',
+            })
+            res.end(cached)
+            return
+          }
+
           const baseDir = import.meta.dirname || __dirname
           const scriptPath = path.resolve(baseDir, 'server', 'generate_tts.py')
 
-          const child = spawn('python', [scriptPath, voice, text, tmpFile])
+          // Stream chunks directly to browser without writing to disk
+          const child = spawn('python', [scriptPath, voice, text, '-'])
+          const audioChunks: Buffer[] = []
+
+          res.writeHead(200, {
+            'Content-Type': 'audio/mpeg',
+            'Transfer-Encoding': 'chunked',
+            'Cache-Control': 'public, max-age=86400',
+          })
+
+          child.stdout.on('data', (chunk) => {
+            audioChunks.push(chunk)
+            res.write(chunk)
+          })
 
           child.on('close', (code) => {
-            if (code === 0 && fs.existsSync(tmpFile)) {
-              const stat = fs.statSync(tmpFile)
-              res.writeHead(200, {
-                'Content-Type': 'audio/mpeg',
-                'Content-Length': stat.size,
-                'Cache-Control': 'public, max-age=3600',
-              })
-              const readStream = fs.createReadStream(tmpFile)
-              readStream.pipe(res)
-              readStream.on('end', () => {
-                fs.unlink(tmpFile, () => {})
-              })
+            if (code === 0 && audioChunks.length > 0) {
+              const fullBuffer = Buffer.concat(audioChunks)
+              ttsCache.set(cacheKey, fullBuffer)
+              res.end()
             } else {
-              res.statusCode = 500
-              res.end(JSON.stringify({ error: 'Failed to synthesize speech' }))
+              res.end()
             }
+          })
+
+          child.on('error', () => {
+            res.statusCode = 500
+            res.end()
           })
         } catch (err) {
           res.statusCode = 500
@@ -79,34 +100,34 @@ function edgeTtsPlugin(): Plugin {
             const buffer = Buffer.concat(chunks)
             if (buffer.length < 100) {
               res.setHeader('Content-Type', 'application/json')
-              res.end(JSON.stringify({ success: true, transcript: '' }))
+              res.end(JSON.stringify({ success: true, transcript: '', lang }))
               return
             }
-
-            const tmpWav = path.join(os.tmpdir(), `stt_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`)
-            fs.writeFileSync(tmpWav, buffer)
 
             const baseDir = import.meta.dirname || __dirname
             const scriptPath = path.resolve(baseDir, 'server', 'transcribe_stt.py')
 
-            const child = spawn('python', [scriptPath, tmpWav, lang])
+            // Stream audio bytes directly into Python stdin in memory
+            const child = spawn('python', [scriptPath, 'stdin', lang])
             let output = ''
             let errorOutput = ''
             child.stdout.on('data', (d) => (output += d))
             child.stderr.on('data', (d) => (errorOutput += d))
 
+            child.stdin.write(buffer)
+            child.stdin.end()
+
             child.on('close', (code) => {
-              fs.unlink(tmpWav, () => {})
               res.setHeader('Content-Type', 'application/json')
               if (code === 0 && output.trim()) {
                 try {
                   res.end(output.trim())
                 } catch {
-                  res.end(JSON.stringify({ success: true, transcript: '' }))
+                  res.end(JSON.stringify({ success: true, transcript: '', lang }))
                 }
               } else {
                 console.error('STT error output:', errorOutput)
-                res.end(JSON.stringify({ success: false, transcript: '', error: errorOutput }))
+                res.end(JSON.stringify({ success: false, transcript: '', lang, error: errorOutput }))
               }
             })
           })
