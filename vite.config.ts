@@ -61,6 +61,60 @@ function edgeTtsPlugin(): Plugin {
           res.end(JSON.stringify({ error: String(err) }))
         }
       })
+
+      server.middlewares.use('/api/stt', (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        try {
+          const url = new URL(req.url || '', `http://${req.headers.host}`)
+          const lang = url.searchParams.get('lang') || 'hi'
+
+          const chunks: Buffer[] = []
+          req.on('data', (chunk) => chunks.push(chunk))
+          req.on('end', () => {
+            const buffer = Buffer.concat(chunks)
+            if (buffer.length < 100) {
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: true, transcript: '' }))
+              return
+            }
+
+            const tmpWav = path.join(os.tmpdir(), `stt_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`)
+            fs.writeFileSync(tmpWav, buffer)
+
+            const baseDir = import.meta.dirname || __dirname
+            const scriptPath = path.resolve(baseDir, 'server', 'transcribe_stt.py')
+
+            const child = spawn('python', [scriptPath, tmpWav, lang])
+            let output = ''
+            let errorOutput = ''
+            child.stdout.on('data', (d) => (output += d))
+            child.stderr.on('data', (d) => (errorOutput += d))
+
+            child.on('close', (code) => {
+              fs.unlink(tmpWav, () => {})
+              res.setHeader('Content-Type', 'application/json')
+              if (code === 0 && output.trim()) {
+                try {
+                  res.end(output.trim())
+                } catch {
+                  res.end(JSON.stringify({ success: true, transcript: '' }))
+                }
+              } else {
+                console.error('STT error output:', errorOutput)
+                res.end(JSON.stringify({ success: false, transcript: '', error: errorOutput }))
+              }
+            })
+          })
+        } catch (err) {
+          res.statusCode = 500
+          res.end(JSON.stringify({ error: String(err) }))
+        }
+      })
     },
   }
 }
