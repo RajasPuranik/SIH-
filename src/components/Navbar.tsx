@@ -35,6 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBlueprintClick }) => {
     setIsIVRModalOpen,
     setIsAudioAssistantOpen,
     setIsOfficerScannerOpen,
+    openPhoneBot,
   } = useApp();
 
   const { language, setLanguage, t } = useLanguage();
@@ -68,14 +69,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onBlueprintClick }) => {
             MSP Gates: 08:00 AM – 06:00 PM
           </span>
         </div>
-        <button
-          onClick={() => setIsIVRModalOpen(true)}
-          className="flex items-center gap-1 text-amber-300 hover:text-amber-200 font-medium transition cursor-pointer"
-        >
-          <PhoneCall className="w-3 h-3 text-amber-400 animate-pulse" />
-          <span className="hidden sm:inline">Toll-Free 1551</span>
-          <span className="sm:hidden">1551</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => openPhoneBot('inbound')}
+            className="flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-full transition cursor-pointer shadow-xs"
+            title="Dial 1800-180-1551 Kisan Phone Bot"
+          >
+            <PhoneCall className="w-3 h-3 animate-pulse" />
+            <span>📞 1551 फोन बॉट (Phone Bot)</span>
+          </button>
+          <button
+            onClick={() => setIsIVRModalOpen(true)}
+            className="hidden sm:flex items-center gap-1 text-amber-300 hover:text-amber-200 font-medium transition cursor-pointer text-xs"
+          >
+            SMS / IVR
+          </button>
+        </div>
       </div>
 
       {/* Main Navbar */}
@@ -139,6 +148,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onBlueprintClick }) => {
                 <span>Scan Gate</span>
               </button>
             )}
+
+            {/* Kisan Phone Bot */}
+            <button
+              onClick={() => openPhoneBot('inbound')}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
+              title="Call Kisan Phone Bot (1800-180-1551)"
+            >
+              <PhoneCall className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+              <span className="hidden sm:inline">फोन बॉट</span>
+            </button>
 
             {/* Audio assistant */}
             <button

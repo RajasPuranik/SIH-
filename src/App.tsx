@@ -13,8 +13,9 @@ import { AudioAssistantModal } from './components/AudioAssistantModal';
 import { BlueprintComparisonModal } from './components/BlueprintComparisonModal';
 import { AuthModal } from './components/Auth/AuthModal';
 import { UserProfileModal } from './components/Profile/UserProfileModal';
+import { PhoneBotModal } from './components/PhoneBot/PhoneBotModal';
 import { Footer } from './components/Footer';
-import { Building2, TrendingUp, Clock, Sparkles } from 'lucide-react';
+import { Building2, TrendingUp, Clock, Sparkles, PhoneCall } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext';
 
 const Dashboard: React.FC = () => {
@@ -24,6 +25,7 @@ const Dashboard: React.FC = () => {
     userRole,
     currentUser,
     isLoggedIn,
+    openPhoneBot,
   } = useApp();
   const { t } = useLanguage();
   const [isBlueprintModalOpen, setIsBlueprintModalOpen] = useState(false);
@@ -138,6 +140,27 @@ const Dashboard: React.FC = () => {
 
       <Footer />
 
+      {/* Floating 1-Tap Phone Bot Call Button */}
+      <div className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40">
+        <button
+          onClick={() => openPhoneBot('inbound')}
+          className="flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold rounded-2xl shadow-xl shadow-emerald-900/30 border border-emerald-400/40 transition-all transform hover:scale-105 cursor-pointer animate-pulse"
+          title="Dial 1800-180-1551 Kisan Phone Bot"
+        >
+          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+            <PhoneCall className="w-4 h-4 text-white" />
+          </div>
+          <div className="text-left">
+            <span className="block text-[9px] sm:text-[10px] text-emerald-200 uppercase font-extrabold tracking-wider leading-none">
+              Toll-Free 1551
+            </span>
+            <span className="block text-xs sm:text-sm font-bold text-white mt-1 leading-none">
+              📞 फोन बॉट (Call Bot)
+            </span>
+          </div>
+        </button>
+      </div>
+
       {/* Modals */}
       <IVRSMSSimulatorModal />
       <MandiGateOfficerModal />
@@ -151,7 +174,12 @@ const Dashboard: React.FC = () => {
 
 const AppRoot: React.FC = () => {
   const { isLoggedIn } = useApp();
-  return isLoggedIn ? <Dashboard /> : <LoginPage />;
+  return (
+    <>
+      {isLoggedIn ? <Dashboard /> : <LoginPage />}
+      <PhoneBotModal />
+    </>
+  );
 };
 
 export function App() {

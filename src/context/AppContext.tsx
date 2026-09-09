@@ -129,6 +129,11 @@ interface AppContextType {
   setIsTradeModalOpen: (open: boolean) => void;
   isAudioAssistantOpen: boolean;
   setIsAudioAssistantOpen: (open: boolean) => void;
+  isPhoneBotOpen: boolean;
+  setIsPhoneBotOpen: (open: boolean) => void;
+  phoneBotMode: 'inbound' | 'outbound';
+  setPhoneBotMode: (mode: 'inbound' | 'outbound') => void;
+  openPhoneBot: (mode?: 'inbound' | 'outbound') => void;
 
   // Sound feedback
   playFeedbackTone: (type?: 'success' | 'ping' | 'alert') => void;
@@ -292,6 +297,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isOfficerScannerOpen, setIsOfficerScannerOpen] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [isAudioAssistantOpen, setIsAudioAssistantOpen] = useState(false);
+  const [isPhoneBotOpen, setIsPhoneBotOpen] = useState(false);
+  const [phoneBotMode, setPhoneBotMode] = useState<'inbound' | 'outbound'>('inbound');
+
+  const openPhoneBot = (mode: 'inbound' | 'outbound' = 'inbound') => {
+    setPhoneBotMode(mode);
+    setIsPhoneBotOpen(true);
+  };
 
   // ─── LIVE PRICE SIMULATION ───
   const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -571,6 +583,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsTradeModalOpen,
         isAudioAssistantOpen,
         setIsAudioAssistantOpen,
+        isPhoneBotOpen,
+        setIsPhoneBotOpen,
+        phoneBotMode,
+        setPhoneBotMode,
+        openPhoneBot,
         playFeedbackTone,
       }}
     >

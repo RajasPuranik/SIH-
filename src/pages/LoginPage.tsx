@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Leaf, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Leaf, ArrowRight, Sparkles, Eye, EyeOff, PhoneCall } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserRole, UserProfile } from '../types';
 
@@ -43,7 +43,7 @@ const ROLES = [
 ];
 
 export const LoginPage: React.FC = () => {
-  const { loginUser, registerUser } = useApp();
+  const { loginUser, registerUser, openPhoneBot } = useApp();
   const [mode, setMode] = useState<'select' | 'login' | 'register'>('select');
   const [selectedRole, setSelectedRole] = useState<UserRole>('farmer');
   const [phone, setPhone] = useState('9826041239');
@@ -288,6 +288,27 @@ export const LoginPage: React.FC = () => {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Toll-Free Phone Bot Card */}
+          <div className="bg-gradient-to-r from-emerald-950/90 to-teal-950/90 rounded-2xl p-3.5 border border-emerald-500/40 flex items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shrink-0 border border-emerald-500/30 animate-pulse">
+                📞
+              </div>
+              <div>
+                <div className="font-bold text-white text-xs sm:text-sm">किसान फोन बॉट (Voice AI)</div>
+                <div className="text-[10px] text-emerald-300">Toll-Free: 1800-180-1551 • बिना इंटरनेट कॉल करें</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => openPhoneBot('inbound')}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer shrink-0 flex items-center gap-1.5"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>कॉल करें</span>
+            </button>
           </div>
 
           {/* Role login buttons */}
