@@ -100,13 +100,24 @@ export const processBotQuery = (
   // 1. GREETING
   if (
     q.includes('hello') ||
+    q.includes('हेलो') ||
+    q.includes('हैलो') ||
+    q.includes('हेल्लो') ||
     q.includes('namaste') ||
     q.includes('नमस्ते') ||
     q.includes('नमस्कार') ||
+    q.includes('प्रणाम') ||
     q.includes('வணக்கம்') ||
     q.includes('నమస్కారం') ||
     q.includes('ram ram') ||
-    q.includes('hi')
+    q.includes('राम राम') ||
+    q.includes('hi') ||
+    q.includes('हाय') ||
+    q.includes('hey') ||
+    q.includes('kisan bot') ||
+    q.includes('किसान बॉट') ||
+    q.includes('सुनो') ||
+    q.includes('बोलो')
   ) {
     const greeting = getInitialGreeting(language);
     return {

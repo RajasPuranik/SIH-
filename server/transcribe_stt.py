@@ -11,11 +11,18 @@ def transcribe(audio_path, lang_code='hi-IN'):
     try:
         with sr.AudioFile(audio_path) as source:
             audio = r.record(source)
-            text = r.recognize_google(audio, language=lang_code)
-            return {"success": True, "transcript": text}
-    except sr.UnknownValueError:
-        # Google Speech Recognition could not understand audio (silence or quiet sound)
-        return {"success": True, "transcript": ""}
+            try:
+                text = r.recognize_google(audio, language=lang_code)
+                return {"success": True, "transcript": text}
+            except sr.UnknownValueError:
+                # If primary language was not recognized and target is not en-IN, try en-IN
+                if lang_code != 'en-IN':
+                    try:
+                        text = r.recognize_google(audio, language='en-IN')
+                        return {"success": True, "transcript": text}
+                    except sr.UnknownValueError:
+                        return {"success": True, "transcript": ""}
+                return {"success": True, "transcript": ""}
     except sr.RequestError as e:
         return {"success": False, "error": f"Google Speech API error: {e}"}
     except Exception as e:

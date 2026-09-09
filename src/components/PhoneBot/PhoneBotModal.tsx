@@ -29,11 +29,6 @@ import {
 } from '../../services/phoneBotEngine';
 import { AudioRecorder, transcribeWavWithApi } from '../../services/audioRecorder';
 
-interface IWindow extends Window {
-  SpeechRecognition?: any;
-  webkitSpeechRecognition?: any;
-}
-
 export const PhoneBotModal: React.FC = () => {
   const {
     isPhoneBotOpen,
@@ -51,6 +46,10 @@ export const PhoneBotModal: React.FC = () => {
 
   // Call States
   const [callState, setCallState] = useState<'incoming' | 'calling' | 'connected' | 'ended'>('incoming');
+  const callStateRef = useRef<'incoming' | 'calling' | 'connected' | 'ended'>('incoming');
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
@@ -153,21 +152,31 @@ export const PhoneBotModal: React.FC = () => {
 
     setMessages([initialMsg]);
     speakText(greeting.spokenText, lang);
+    if (!isMuted) {
+      setTimeout(() => {
+        startListening(lang);
+      }, 300);
+    }
   };
 
   // ─── NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) ───
   const speakText = (text: string, currentLang: SupportedBotLang = botLang) => {
     if (!isSpeakerOn) {
-      if (!isMuted && callState === 'connected') {
+      if (!isMuted && callStateRef.current === 'connected') {
         setTimeout(() => startListening(currentLang), 300);
       }
       return;
     }
 
-    // Stop microphone listening while bot is speaking so bot doesn't transcribe itself
-    stopListening();
     isBotSpeakingRef.current = true;
     setIsBotSpeaking(true);
+
+    // Keep recorder running but reset buffer so voice interruption can detect a spoken word
+    if (audioRecorderRef.current) {
+      audioRecorderRef.current.resetBuffer();
+    } else if (!isMuted && callStateRef.current === 'connected') {
+      startListening(currentLang);
+    }
 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -196,11 +205,10 @@ export const PhoneBotModal: React.FC = () => {
         setIsBotSpeaking(false);
         isBotSpeakingRef.current = false;
         audioElementRef.current = null;
-        // Turn microphone on for user's turn
-        if (!isMuted && callState === 'connected') {
-          setTimeout(() => {
-            startListening(currentLang);
-          }, 300);
+        if (audioRecorderRef.current) {
+          audioRecorderRef.current.resetBuffer();
+        } else if (!isMuted && callStateRef.current === 'connected') {
+          startListening(currentLang);
         }
       };
 
@@ -253,18 +261,20 @@ export const PhoneBotModal: React.FC = () => {
     utterance.onend = () => {
       setIsBotSpeaking(false);
       isBotSpeakingRef.current = false;
-      if (!isMuted && callState === 'connected') {
-        setTimeout(() => {
-          startListening(currentLang);
-        }, 300);
+      if (audioRecorderRef.current) {
+        audioRecorderRef.current.resetBuffer();
+      } else if (!isMuted && callStateRef.current === 'connected') {
+        startListening(currentLang);
       }
     };
 
     utterance.onerror = () => {
       setIsBotSpeaking(false);
       isBotSpeakingRef.current = false;
-      if (!isMuted && callState === 'connected') {
-        setTimeout(() => startListening(currentLang), 300);
+      if (audioRecorderRef.current) {
+        audioRecorderRef.current.resetBuffer();
+      } else if (!isMuted && callStateRef.current === 'connected') {
+        startListening(currentLang);
       }
     };
 
@@ -291,36 +301,56 @@ export const PhoneBotModal: React.FC = () => {
     setIsBotSpeaking(false);
     playFeedbackTone('ping');
 
-    setTimeout(() => {
-      if (!isMuted && callState === 'connected') {
-        startListening(botLang);
-      }
-    }, 120);
+    if (audioRecorderRef.current) {
+      audioRecorderRef.current.resetBuffer();
+    } else if (!isMuted && callStateRef.current === 'connected') {
+      startListening(botLang);
+    }
   };
 
-  // ─── ROBUST CONTINUOUS SPEECH-TO-TEXT (AUDIO RECORDER + /API/STT) ───
+  // ─── ROBUST FULL-DUPLEX CONTINUOUS SPEECH-TO-TEXT ───
   const startListening = async (lang: SupportedBotLang = botLang) => {
     if (isStartingRef.current) return;
+    if (audioRecorderRef.current) {
+      audioRecorderRef.current.setMuted(false);
+      audioRecorderRef.current.resetBuffer();
+      setIsListening(true);
+      return;
+    }
+
     isStartingRef.current = true;
     wantListeningRef.current = true;
     setMicStatusMsg(null);
     setCurrentSpeechTranscript('');
     setIsProcessingAudio(false);
 
-    if (audioRecorderRef.current) {
-      try {
-        audioRecorderRef.current.stop();
-      } catch {}
-      audioRecorderRef.current = null;
-    }
-
     try {
       const recorder = new AudioRecorder({
         sampleRate: 16000,
-        silenceDurationMs: 1400,
-        speechThreshold: 0.02,
+        silenceDurationMs: 1100,
+        speechThreshold: 0.010,
+        botSpeakingThreshold: 0.035,
+        isBotSpeaking: () => isBotSpeakingRef.current,
+        onVoiceInterrupt: () => {
+          // Whenever ANY word is spoken by user while bot is speaking, instantly stop the bot!
+          if (audioElementRef.current) {
+            try {
+              audioElementRef.current.pause();
+              audioElementRef.current.currentTime = 0;
+            } catch {}
+            audioElementRef.current = null;
+          }
+          if ('speechSynthesis' in window) {
+            try {
+              window.speechSynthesis.cancel();
+            } catch {}
+          }
+          isBotSpeakingRef.current = false;
+          setIsBotSpeaking(false);
+          playFeedbackTone('ping');
+        },
         onVolume: (vol) => {
-          const level = Math.min(100, Math.round(vol * 350));
+          const level = Math.min(100, Math.round(vol * 450));
           setMicVolume(level);
         },
         onSpeechStart: () => {
@@ -335,15 +365,12 @@ export const PhoneBotModal: React.FC = () => {
       await recorder.start();
       setIsListening(true);
       isStartingRef.current = false;
-
-      // Start client-side Web Speech API in parallel for instant interim display
-      startBrowserRecognition(lang);
     } catch (err: any) {
       console.warn('Microphone start error:', err);
       isStartingRef.current = false;
       setIsListening(false);
       if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        setMicStatusMsg('Microphone blocked. Click the lock icon in the address bar to allow.');
+        setMicStatusMsg('माइक अनुमति अस्वीकृत (Microphone blocked). ब्राउज़र सेटिंग्स में अनुमति दें.');
       }
     }
   };
@@ -351,20 +378,21 @@ export const PhoneBotModal: React.FC = () => {
   const finishAndTranscribe = async (lang: SupportedBotLang = botLang) => {
     if (!audioRecorderRef.current) return;
 
+    const hasSpoken = audioRecorderRef.current.getHasSpoken();
+    if (!hasSpoken) {
+      audioRecorderRef.current.resetBuffer();
+      return;
+    }
+
     setIsProcessingAudio(true);
-    const wavBlob = audioRecorderRef.current.stop();
-    audioRecorderRef.current = null;
-    setIsListening(false);
     setIsUserSpeaking(false);
     setMicVolume(0);
-    stopBrowserRecognition();
+
+    // Extract utterance WAV while keeping the live microphone stream active
+    const wavBlob = audioRecorderRef.current.extractWavAndReset();
 
     if (!wavBlob || wavBlob.size < 1200) {
       setIsProcessingAudio(false);
-      // Resume listening if user didn't speak
-      if (wantListeningRef.current && !isBotSpeakingRef.current && callState === 'connected') {
-        setTimeout(() => startListening(lang), 300);
-      }
       return;
     }
 
@@ -374,18 +402,10 @@ export const PhoneBotModal: React.FC = () => {
 
       if (res.success && res.transcript && res.transcript.trim()) {
         handleUserUtterance(res.transcript.trim(), lang);
-      } else {
-        // If transcript was empty (silence or noise), resume listening
-        if (wantListeningRef.current && !isBotSpeakingRef.current && callState === 'connected') {
-          setTimeout(() => startListening(lang), 300);
-        }
       }
     } catch (err) {
       console.error('STT transcribing error:', err);
       setIsProcessingAudio(false);
-      if (wantListeningRef.current && !isBotSpeakingRef.current && callState === 'connected') {
-        setTimeout(() => startListening(lang), 400);
-      }
     }
   };
 
@@ -401,62 +421,13 @@ export const PhoneBotModal: React.FC = () => {
       } catch {}
       audioRecorderRef.current = null;
     }
-    stopBrowserRecognition();
   };
 
-  const startBrowserRecognition = (lang: SupportedBotLang) => {
-    const win = window as IWindow;
-    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    stopBrowserRecognition();
-
-    try {
-      const recognition = new SpeechRecognition();
-      speechRecognitionRef.current = recognition;
-
-      const langCodeMap: Record<string, string> = {
-        hi: 'hi-IN',
-        mr: 'mr-IN',
-        ta: 'ta-IN',
-        te: 'te-IN',
-        en: 'en-IN',
-      };
-      recognition.lang = langCodeMap[lang] || 'hi-IN';
-      recognition.continuous = false;
-      recognition.interimResults = true;
-
-      recognition.onresult = (event: any) => {
-        let interim = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          interim += event.results[i][0].transcript;
-        }
-        if (interim.trim()) {
-          setCurrentSpeechTranscript(interim.trim());
-        }
-      };
-
-      recognition.onerror = () => {
-        // Silently ignore browser network errors since AudioRecorder + /api/stt handles transcription!
-      };
-
-      recognition.onend = () => {
-        // Handled by AudioRecorder
-      };
-
-      recognition.start();
-    } catch {}
-  };
-
-  const stopBrowserRecognition = () => {
-    if (speechRecognitionRef.current) {
-      try {
-        speechRecognitionRef.current.onresult = null;
-        speechRecognitionRef.current.onerror = null;
-        speechRecognitionRef.current.onend = null;
-        speechRecognitionRef.current.abort();
-      } catch {}
-      speechRecognitionRef.current = null;
+  const toggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    if (audioRecorderRef.current) {
+      audioRecorderRef.current.setMuted(nextMuted);
     }
   };
 
@@ -921,28 +892,20 @@ export const PhoneBotModal: React.FC = () => {
               </button>
             </div>
 
-            {/* Call Action Bar (Mute, Mic Speak, Keypad, Speaker, Hangup) */}
+            {/* Call Action Bar (Mute, Keypad, Speaker, Hangup) */}
             <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-around shrink-0">
-              {/* Mic / Speak Voice Button */}
+              {/* Mute / Unmute Button */}
               <button
-                onClick={() => {
-                  if (isBotSpeaking) {
-                    interruptBot();
-                  } else if (isListening) {
-                    finishAndTranscribe();
-                  } else {
-                    startListening();
-                  }
-                }}
+                onClick={toggleMute}
                 className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer shadow-md ${
-                  isListening
-                    ? 'bg-red-600 text-white animate-pulse ring-2 ring-red-400'
+                  isMuted
+                    ? 'bg-amber-600 text-white animate-pulse ring-2 ring-amber-400'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 }`}
-                title={isListening ? 'बोलना समाप्त करने के लिए दबाएँ' : 'बोलने के लिए दबाएँ'}
+                title={isMuted ? 'माइक अनम्यूट करें (Unmute)' : 'माइक म्यूट करें (Mute)'}
               >
-                <Mic className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
-                <span className="text-[8px] font-bold mt-0.5">{isListening ? 'चालू है' : 'बोलें'}</span>
+                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                <span className="text-[8px] font-bold mt-0.5">{isMuted ? 'म्यूट' : 'माइक चालू'}</span>
               </button>
 
               {/* Keypad toggle */}
@@ -951,6 +914,7 @@ export const PhoneBotModal: React.FC = () => {
                 className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
                   showKeypad ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                 }`}
+                title="DTMF कीपैड (Keypad)"
               >
                 <Grid className="w-4 h-4" />
                 <span className="text-[8px] mt-0.5">Keypad</span>
@@ -962,18 +926,20 @@ export const PhoneBotModal: React.FC = () => {
                 className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
                   isSpeakerOn ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-amber-950 text-amber-400 border-amber-800'
                 }`}
+                title={isSpeakerOn ? 'स्पीकर चालू' : 'स्पीकर बंद'}
               >
                 {isSpeakerOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'Speaker' : 'Mute'}</span>
+                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'स्पीकर' : 'शांत'}</span>
               </button>
 
               {/* End Call Button */}
               <button
                 onClick={endCall}
                 className="w-12 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white flex flex-col items-center justify-center transition cursor-pointer shadow-lg shadow-red-600/30"
+                title="कॉल काटें (End Call)"
               >
                 <PhoneOff className="w-5 h-5" />
-                <span className="text-[8px] font-bold mt-0.5">Cut</span>
+                <span className="text-[8px] font-bold mt-0.5">कॉल काटें</span>
               </button>
             </div>
           </div>
