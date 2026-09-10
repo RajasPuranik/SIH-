@@ -1,4 +1,5 @@
 import React from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   QrCode, 
   Printer, 
@@ -66,7 +67,7 @@ export const TokenPassCard: React.FC<TokenPassCardProps> = ({ booking }) => {
           {/* Authentic SVG QR Code Representation */}
           <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
             <div className="w-36 h-36 bg-white p-2 rounded-lg border-2 border-slate-300 shadow-xs flex flex-col items-center justify-center relative">
-              <QrCode className="w-32 h-32 text-slate-800" />
+              <QRCodeSVG value={booking.tokenNumber} size={128} />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="bg-white p-1 rounded-md shadow-xs border border-slate-200">
                   <span className="text-xs">🇮🇳</span>

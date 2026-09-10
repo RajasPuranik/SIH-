@@ -89,7 +89,7 @@ export const LiveStatusTracker: React.FC = () => {
     if (found) {
       setActiveBookingId(found.id);
     } else {
-      alert(`No active booking found matching "${searchQuery}". Try selecting one of the demo tokens below.`);
+      alert(`No active booking found matching "${searchQuery}". Please check the token number and try again.`);
     }
   };
 
@@ -128,26 +128,7 @@ export const LiveStatusTracker: React.FC = () => {
           </button>
         </form>
 
-        {/* Quick Demo Tokens */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 flex-wrap text-xs">
-          <span className="text-slate-400 font-medium">Quick Demo Tokens:</span>
-          {bookings.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => {
-                setActiveBookingId(b.id);
-                setSearchQuery(b.tokenNumber);
-              }}
-              className={`px-2.5 py-1 rounded-lg border font-mono font-semibold transition cursor-pointer ${
-                b.id === currentBooking.id
-                  ? 'bg-emerald-100 border-emerald-400 text-emerald-800 shadow-2xs'
-                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-              }`}
-            >
-              {b.tokenNumber} ({b.status.replace(/_/g, ' ')})
-            </button>
-          ))}
-        </div>
+        
       </div>
 
       {/* Main Status Pipeline Display */}
@@ -172,15 +153,7 @@ export const LiveStatusTracker: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Advance Status Button for Testing/Demo */}
-            <button
-              onClick={handleAdvanceStep}
-              disabled={currentIndex >= stages.length - 1}
-              className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-2xs"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Simulate Next Stage →</span>
-            </button>
+            
           </div>
         </div>
 

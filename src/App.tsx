@@ -7,7 +7,6 @@ import { TickerBar } from './components/TickerBar';
 import { GovtProcurementView } from './components/PillarGovt/GovtProcurementView';
 import { CropStockExchangeView } from './components/PillarMarket/CropStockExchangeView';
 import { MandiCongestionHeatmap } from './components/MandiCongestionHeatmap';
-import { IVRSMSSimulatorModal } from './components/PillarGovt/IVRSMSSimulatorModal';
 import { MandiGateOfficerModal } from './components/PillarGovt/MandiGateOfficerModal';
 import { AudioAssistantModal } from './components/AudioAssistantModal';
 import { BlueprintComparisonModal } from './components/BlueprintComparisonModal';
@@ -124,8 +123,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <IVRSMSSimulatorModal />
-      <MandiGateOfficerModal />
+            <MandiGateOfficerModal />
       <AudioAssistantModal />
       <AuthModal />
       <UserProfileModal />

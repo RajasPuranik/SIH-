@@ -18,7 +18,7 @@ import { useApp } from '../../context/AppContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const GovtProcurementView: React.FC = () => {
-  const { getActiveBooking, setIsIVRModalOpen, setIsOfficerScannerOpen, userRole } = useApp();
+  const { getActiveBooking, setIsOfficerScannerOpen, userRole } = useApp();
   const { t } = useLanguage();
 
   const isOfficer = userRole === 'mandi_officer';
@@ -113,14 +113,7 @@ export const GovtProcurementView: React.FC = () => {
             );
           })}
         </div>
-        <button
-          onClick={() => setIsIVRModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0"
-        >
-          <PhoneCall className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">IVR & SMS</span>
-          <span className="sm:hidden">IVR</span>
-        </button>
+        
       </div>
 
       {/* Officer scanner panel */}

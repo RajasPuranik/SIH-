@@ -60,16 +60,16 @@ export const LoginPage: React.FC = () => {
 
   const roleInfo = ROLES.find((r) => r.role === selectedRole)!;
 
-  const handleQuickLogin = (role: UserRole) => loginUser(role);
+  
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (otp !== '1234') {
-      setError('Invalid OTP. Use 1234 for demo.');
+      setError('Invalid OTP. For now, use 1234.');
       return;
     }
-    loginUser(selectedRole, '+91 ' + phone);
+    const res = loginWithPhone('+91 ' + phone); if (!res.success) { setError(res.message); } else { setSuccess('Login successful'); }
   };
 
   const handleRegister = (e: React.FormEvent) => {
@@ -161,7 +161,7 @@ export const LoginPage: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">OTP</label>
-                <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Demo: 1234</span>
+                <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">OTP: 1234</span>
               </div>
               <div className="flex gap-2">
                 <input
@@ -313,27 +313,6 @@ export const LoginPage: React.FC = () => {
   return (
     <PageShell>
       <div className="space-y-4">
-        {/* Quick Demo Strip */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Quick Demo Login</span>
-            <span className="text-[10px] text-slate-400">Pre-seeded profiles · No registration needed</span>
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {ROLES.map((r) => (
-              <button
-                key={r.role}
-                onClick={() => handleQuickLogin(r.role)}
-                className="flex flex-col items-center gap-1 py-3 px-1 rounded-lg border border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition cursor-pointer"
-              >
-                <span className="text-xl">{r.icon}</span>
-                <span className="text-[10px] font-semibold text-slate-700 text-center leading-tight">{r.title.split('/')[0].trim()}</span>
-                <span className="text-[9px] text-slate-400">{r.hindiTitle}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-slate-200" />

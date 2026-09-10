@@ -119,15 +119,11 @@ export const AuthModal: React.FC = () => {
     }
   ];
 
-  const handleQuickDemoLogin = (role: UserRole) => {
-    loginUser(role);
-  };
-
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (authMethod === 'otp' && enteredOtp !== '1234') {
-      setError('Invalid OTP. Use 1234 for demo.');
+      setError('Invalid OTP. For now, use 1234.');
       return;
     }
     const { success, message } = useApp().loginWithPhone(`+91 ${loginIdentifier}`);
@@ -288,53 +284,7 @@ export const AuthModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick 1-Click Demo Login Chips */}
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-bold text-slate-700 text-[11px] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                Quick 1-Click Demo Logins:
-              </span>
-              <span className="text-[10px] text-slate-400">Pre-seeded Profiles</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('farmer')}
-                className="p-2 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl text-left transition cursor-pointer text-slate-700"
-              >
-                <span className="font-bold text-slate-900 block text-[11px]">🌾 Rameshwar (Kissan)</span>
-                <span className="text-[10px] text-slate-500">18.5 Acres • Indore</span>
-              </button>
 
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('mandi_officer')}
-                className="p-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition cursor-pointer text-slate-700"
-              >
-                <span className="font-bold text-slate-900 block text-[11px]">🏛️ Dr. Sunita (Officer)</span>
-                <span className="text-[10px] text-slate-500">Gate 3 Inspector</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('corporate_buyer')}
-                className="p-2 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-left transition cursor-pointer text-slate-700"
-              >
-                <span className="font-bold text-slate-900 block text-[11px]">🏢 Vikram (Buyer)</span>
-                <span className="text-[10px] text-slate-500">₹18.5L Escrow Reserve</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('admin')}
-                className="p-2 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-400 rounded-xl text-left transition cursor-pointer text-slate-700"
-              >
-                <span className="font-bold text-slate-900 block text-[11px]">🛡️ Rajesh (Admin)</span>
-                <span className="text-[10px] text-slate-500">Mandi Regulator HQ</span>
-              </button>
-            </div>
-          </div>
 
           {/* Form: LOGIN MODE */}
           {authModalMode === 'login' ? (
@@ -385,7 +335,7 @@ export const AuthModal: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-slate-600 font-semibold">Enter 4-Digit SMS OTP</label>
-                    <span className="text-[10px] text-emerald-600 font-semibold">Demo OTP: 1234</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">OTP: 1234</span>
                   </div>
                   <div className="flex gap-2">
                     <input
