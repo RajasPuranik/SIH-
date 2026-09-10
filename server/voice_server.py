@@ -52,6 +52,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 import edge_tts
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from text_normalize import normalize_for_tts
 
 logging.basicConfig(level=logging.INFO)
