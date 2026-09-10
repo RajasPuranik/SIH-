@@ -116,10 +116,10 @@ const Dashboard: React.FC = () => {
         <button
           onClick={() => openPhoneBot('inbound')}
           className="flex items-center gap-2 px-4 py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold rounded-full shadow-lg border border-emerald-700 transition cursor-pointer"
-          title="Toll-Free 1800-180-1551 Kisan Voice Bot"
+          title="Toll-Free 1800-180-1551 Track AI"
         >
           <PhoneCall className="w-4 h-4 text-emerald-300 animate-pulse" />
-          <span className="text-xs font-bold">1551 Voice Bot</span>
+          <span className="text-xs font-bold">Track AI</span>
         </button>
       </div>
 

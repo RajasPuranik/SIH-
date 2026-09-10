@@ -254,7 +254,7 @@ export const AdminView: React.FC = () => {
               </div>
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">1800-180-1551 Phone Bot Status</span>
+                  <span className="text-slate-500">Track AI Status</span>
                   <span className="font-semibold text-emerald-600">Active (Full-Duplex Interruption Ready)</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-100">

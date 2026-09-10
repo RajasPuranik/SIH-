@@ -370,22 +370,7 @@ export const SlotBookingForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess
 
         {/* Guaranteed Payout Calculation Card */}
         <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">
-              ₹
-            </div>
-            <div>
-              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                Guaranteed Gross MSP Payment
-              </span>
-              <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-800">
-                ₹{grossEstimatedMSP.toLocaleString('en-IN')}
-              </div>
-              <span className="text-[11px] text-slate-600">
-                Calculation: {quantityNum} Qtl × ₹{selectedCrop.mspRate}/Qtl (Zero Mandi Tax deduction on MSP)
-              </span>
-            </div>
-          </div>
+          <div className="flex-1"></div>
 
           <button
             type="submit"

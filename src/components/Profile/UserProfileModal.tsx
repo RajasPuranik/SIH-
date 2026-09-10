@@ -35,7 +35,20 @@ export const UserProfileModal: React.FC = () => {
     bookings,
     orderBook
   } = useApp();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        updateUserProfile({ avatar: base64String });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(currentUser.name);
@@ -46,6 +59,7 @@ export const UserProfileModal: React.FC = () => {
 
   if (!isProfileModalOpen) return null;
 
+  
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUserProfile({
@@ -89,9 +103,29 @@ export const UserProfileModal: React.FC = () => {
         <div className={`bg-gradient-to-r ${roleInfo.gradient} text-white p-6 relative shrink-0`}>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-4xl border border-white/20 shadow-md">
-                {currentUser.avatar}
+              
+              <div 
+                className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-4xl border border-white/20 shadow-md overflow-hidden cursor-pointer group relative"
+                onClick={() => fileInputRef.current?.click()}
+                title="Click to change profile photo"
+              >
+                {currentUser.avatar.startsWith('data:image') ? (
+                  <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  currentUser.avatar
+                )}
+                <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center transition">
+                  <span className="text-[10px] text-white font-bold">EDIT</span>
+                </div>
               </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handlePhotoUpload} 
+              />
+
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-extrabold text-lg sm:text-xl text-white">
