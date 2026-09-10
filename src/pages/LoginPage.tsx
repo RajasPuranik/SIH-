@@ -41,9 +41,18 @@ const ROLES = [
     hindiTitle: 'प्रशासक',
     desc: 'Oversight, user registry, MSP controls & data export',
     accent: 'border-l-slate-700',
-    badge: 'bg-slate-100 text-slate-700 border-slate-300',
-    btn: 'bg-slate-900 hover:bg-slate-800',
+    badge: 'bg-slate-100 text-slate-700 border-slate-300',    btn: 'bg-slate-900 hover:bg-slate-800',
   },
+  {
+    role: 'shipper' as UserRole,
+    icon: '🚚',
+    title: 'Transporter / Delivery',
+    hindiTitle: 'ट्रांसपोर्टर',
+    desc: 'Accept logistics jobs, track routes, manage shipments',
+    accent: 'border-l-orange-500',
+    badge: 'bg-orange-100 text-orange-700 border-orange-300',
+    btn: 'bg-orange-600 hover:bg-orange-500',
+  }
 ];
 
 
