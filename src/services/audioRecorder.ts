@@ -405,134 +405,43 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
 /**
  * Transcribe WAV Blob using backend STT API
  */
+import { GoogleGenerativeAI } from '@google/generative-ai';
 export async function transcribeWavWithApi(
   wavBlob: Blob,
   lang: string = 'hi'
 ): Promise<{ success: boolean; transcript: string; error?: string }> {
   try {
-    const baseUrl = import.meta.env.VITE_API_BASE || '/api';
-    const response = await fetch(`${baseUrl}/stt?lang=${encodeURIComponent(lang)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'audio/wav',
-      },
-      body: wavBlob,
-    });
-
-    if (!response.ok) {
-      return { success: false, transcript: '', error: `Server error: ${response.status}` };
-    }
-
-    const data = await response.json();
-    return {
-      success: data.success ?? true,
-      transcript: data.transcript || '',
-      error: data.error,
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      transcript: '',
-      error: err?.message || 'Network error connecting to STT server',
-    };
-  }
-}
-
-
-// --- WEB SPEECH API (Native Browser STT) ---
-// Kept as an optional fallback path. Not used by default because browser
-// support/accuracy for Hindi & Marathi via this API is inconsistent across
-// devices, but it's here (and free, zero-latency) if you want to wire it in
-// as an instant first guess while the server-based transcription confirms.
-export class SpeechRecognitionService {
-  private recognition: any = null;
-  private isRecording = false;
-  private onResult: (text: string, isFinal: boolean) => void;
-  private onEnd: () => void;
-  private onError: (err: any) => void;
-
-  constructor(
-    onResult: (text: string, isFinal: boolean) => void,
-    onEnd: () => void,
-    onError: (err: any) => void
-  ) {
-    this.onResult = onResult;
-    this.onEnd = onEnd;
-    this.onError = onError;
-  }
-
-  start(lang: string = 'hi-IN') {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      this.onError(new Error('SpeechRecognition not supported in this browser.'));
-      return;
-    }
-
-    if (this.recognition && this.isRecording) {
-      this.stop();
-    }
-
-    this.recognition = new SpeechRecognition();
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-
-    // Map internal lang to BCP-47
-    const langMap: Record<string, string> = {
-      hi: 'hi-IN',
-      mr: 'mr-IN',
-      en: 'en-IN',
-    };
-    this.recognition.lang = langMap[lang] || lang;
-    this.recognition.maxAlternatives = 1;
-
-    let finalTranscript = '';
-
-    this.recognition.onresult = (event: any) => {
-      let interimTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-          this.onResult(event.results[i][0].transcript, true);
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-          this.onResult(interimTranscript, false);
-        }
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (apiKey) {
+      const buffer = await wavBlob.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
       }
-    };
+      const base64 = btoa(binary);
 
-    this.recognition.onerror = (event: any) => {
-      if (event.error === 'no-speech') return; // Ignore simple silence timeouts
-      this.onError(event.error);
-    };
-
-    this.recognition.onend = () => {
-      this.isRecording = false;
-      this.onEnd();
-    };
-
-    try {
-      this.recognition.start();
-      this.isRecording = true;
-    } catch (e) {
-      this.onError(e);
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
+      
+      const prompt = "Transcribe the speech in this audio accurately. If it contains Hindi, Marathi, or English, transcribe it natively in its respective script. Return ONLY the transcribed text without quotes or markdown.";
+      
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            data: base64,
+            mimeType: "audio/wav"
+          }
+        },
+        { text: prompt }
+      ]);
+      const text = result.response.text().trim();
+      return { success: true, transcript: text };
     }
-  }
 
-  stop() {
-    if (this.recognition && this.isRecording) {
-      try {
-        this.recognition.stop();
-      } catch (e) {}
-      this.isRecording = false;
-    }
-  }
-
-  abort() {
-    if (this.recognition && this.isRecording) {
-      try {
-        this.recognition.abort();
-      } catch (e) {}
-      this.isRecording = false;
-    }
+    return { success: false, transcript: '', error: "VITE_GEMINI_API_KEY is missing from Vercel! Add it and redeploy." };
+  } catch (err: any) {
+    return { success: false, transcript: '', error: `Gemini Error: ${err.message}` };
   }
 }
