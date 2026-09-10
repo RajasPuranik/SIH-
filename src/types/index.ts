@@ -1,6 +1,6 @@
 export type Language = 'en' | 'hi' | 'pa' | 'mr';
 
-export type UserRole = 'farmer' | 'mandi_officer' | 'corporate_buyer';
+export type UserRole = 'farmer' | 'mandi_officer' | 'corporate_buyer' | 'admin';
 
 export type ActivePillar = 'govt' | 'exchange';
 
@@ -39,6 +39,11 @@ export interface UserProfile {
   tradeLicenseNo?: string;
   buyerType?: 'Corporate' | 'Flour Mill' | 'Oil Expeller' | 'Exporter';
   escrowBalance?: number;
+
+  // Admin specific
+  adminRoleTitle?: string;
+  permissions?: string[];
+  accessLevel?: 'Super Admin' | 'Mandi Supervisor' | 'Data Auditor';
 }
 
 export interface CropInfo {
@@ -148,6 +153,8 @@ export interface AIPredictionData {
 export interface DistrictMandiRate {
   district: string;
   mandiName: string;
+  lat?: number;
+  lon?: number;
   cropId: string;
   modalPrice: number; // avg selling rate
   minPrice: number;

@@ -1,4 +1,47 @@
+import { DISTRICT_RATES } from '../data/mockData';
 import { CropInfo, SlotBooking } from '../types';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+let genAI: GoogleGenerativeAI | null = null;
+try {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (apiKey) {
+    genAI = new GoogleGenerativeAI(apiKey);
+  }
+} catch (e) {
+  // Ignore
+}
+
+// Helper to construct AI prompt
+const generateAiPrompt = (query: string, lang: string, crops: CropInfo[], bookings: SlotBooking[], coords: any, weatherData: string) => {
+  const cropData = crops.map(c => `${c.hindiName} (${c.name}): ₹${c.mspRate}/q`).join(', ');
+  const tokenData = bookings.map(b => `Token ${b.id}: Status ${b.status}, Crop: ${b.cropName}`).join(', ');
+  return `You are "KisanTrack Voicebot", a helpful, empathetic, and smart AI phone assistant for Indian farmers. 
+The user is speaking in ${lang === 'hi' ? 'Hindi / Hinglish' : lang === 'mr' ? 'Marathi' : 'English'}.
+They might use English words mixed with their native language (Hinglish). 
+Due to heavy rural accents, dialects, and speech-to-text transcription errors, the text might contain misspellings or phonetically garbled words. 
+AUTOCORRECT and infer their intent. 
+
+If they ask general human questions (e.g. how are you, who are you), reply naturally like a friendly human assistant.
+If they ask about the weather, use this live weather data: ${weatherData}
+
+Current Market Rates: ${cropData}
+User's Active Tokens: ${tokenData}
+Location Coords: ${coords ? JSON.stringify(coords) : 'Unknown'}
+
+User said: "${query}"
+
+Respond as a human-like voice assistant. Be concise, polite, and helpful. 
+Respond ONLY with a valid JSON object in this exact format:
+{
+  "spokenText": "The conversational reply to read aloud (in the user's language/script). Keep it conversational and natural.",
+  "displayText": "A markdown formatted text to show on screen with emojis and bullet points.",
+  "quickActions": [ {"label": "Action Name", "action": "action_id"} ]
+}
+Do not include any markdown backticks around the JSON.`;
+};
+
+
 
 export interface BotResponse {
   spokenText: string;
@@ -9,11 +52,13 @@ export interface BotResponse {
 
 export type SupportedBotLang = 'hi' | 'mr' | 'ta' | 'te' | 'en';
 
+// Trimmed to the three languages the voicebot is built and tuned for.
+// (Tamil/Telugu response logic still exists further down in this file for
+// future re-enabling, but is no longer exposed in the language picker/IVR
+// since it wasn't part of the tested, natural-voice experience.)
 export const BOT_LANGUAGES: { code: SupportedBotLang; label: string; nativeName: string; voice: string; flag: string }[] = [
   { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी', voice: 'hi-IN-SwaraNeural', flag: '🇮🇳' },
   { code: 'mr', label: 'Marathi', nativeName: 'मराठी', voice: 'mr-IN-AarohiNeural', flag: '🚩' },
-  { code: 'ta', label: 'Tamil', nativeName: 'தமிழ்', voice: 'ta-IN-PallaviNeural', flag: '🌴' },
-  { code: 'te', label: 'Telugu', nativeName: 'తెలుగు', voice: 'te-IN-ShrutiNeural', flag: '🏛️' },
   { code: 'en', label: 'English', nativeName: 'English (IN)', voice: 'en-IN-NeerjaExpressiveNeural', flag: '🇬🇧' },
 ];
 
@@ -117,14 +162,44 @@ const CROP_SYNONYMS: { id: string; terms: string[] }[] = [
   { id: 'maize', terms: ['maize', 'corn', 'मक्का', 'मका', 'भुट्टा', 'மக்காச்சோளம்', 'மக்கா சோளம்', 'మొక్కజొన్న'] },
 ];
 
-export const processBotQuery = (
+export const processBotQuery = async (
   rawQuery: string,
   crops: CropInfo[],
   bookings: SlotBooking[],
   userDistrict: string = 'Indore',
+  coords?: {lat: number, lon: number},
   language: SupportedBotLang = 'hi'
-): BotResponse => {
+): Promise<BotResponse> => {
   const q = rawQuery.toLowerCase().trim();
+
+  let weatherString = "Weather data not requested.";
+  if (q.includes('weather') || q.includes('rain') || q.includes('मौसम') || q.includes('बारिश') || q.includes('पानी') || q.includes('तापमान') || q.includes('हवामान') || q.includes('पाऊस') || q.includes('temperature') || q.includes('garmi') || q.includes('thandi') || q.includes('mausam')) {
+    try {
+      const lat = coords?.lat || 22.7179;
+      const lon = coords?.lon || 75.8333;
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current_weather=true');
+      const data = await res.json();
+      if (data.current_weather) {
+        weatherString = `${data.current_weather.temperature}°C, condition code ${data.current_weather.weathercode} (>50 means rainy)`;
+      }
+    } catch(e) {}
+  }
+
+  // Try AI engine first if configured
+  if (genAI) {
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      const prompt = generateAiPrompt(rawQuery, language, crops, bookings, coords, weatherString);
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(text);
+      if (parsed.spokenText && parsed.displayText) {
+        return parsed as BotResponse;
+      }
+    } catch (err) {
+      console.error("AI engine failed, falling back to rules:", err);
+    }
+  }
 
   // Helper to find crop across Hindi, Marathi, Tamil, Telugu, English
   const findCrop = () => {
@@ -177,44 +252,86 @@ export const processBotQuery = (
 
   // 2. WEATHER / FORECAST
   if (
-    q.includes('weather') ||
-    q.includes('rain') ||
-    q.includes('मौसम') ||
-    q.includes('बारिश') ||
-    q.includes('पानी') ||
-    q.includes('तापमान') ||
-    q.includes('हवामान') ||
-    q.includes('पाऊस') ||
-    q.includes('வானிலை') ||
-    q.includes('மழை') ||
-    q.includes('వాతావరణం') ||
-    q.includes('వర్షం')
+    q.includes('weather') || q.includes('rain') || q.includes('मौसम') || q.includes('बारिश') ||
+    q.includes('पानी') || q.includes('तापमान') || q.includes('हवामान') || q.includes('पाऊस') ||
+    q.includes('வானிலை') || q.includes('மழை') || q.includes('వాతావరణం') || q.includes('వర్షం')
   ) {
+    let temp = 31;
+    let desc = 'Clear';
+    try {
+      const lat = coords?.lat || 22.7179;
+      const lon = coords?.lon || 75.8333;
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current_weather=true');
+      const data = await res.json();
+      if (data.current_weather) {
+        temp = data.current_weather.temperature;
+        desc = data.current_weather.weathercode > 50 ? 'Rainy' : 'Clear/Cloudy';
+      }
+    } catch(e) {}
+    
+    const isRain = desc === 'Rainy';
+    const rainTxt = isRain ? 'बारिश की संभावना है' : 'मौसम साफ रहेगा';
+
     switch (language) {
       case 'mr':
         return {
-          spokenText: `आज इंदूर परिसरात हवामान निरभ्र राहील, कमाल तापमान 31 अंश आणि पावसाची शक्यता फक्त 10 टक्के आहे. शेतमालाच्या वाहतुकीसाठी हवामान अनुकूल आहे.`,
-          displayText: `🌤️ **हवामान अंदाज (मराठी):**\n• हवामान: निरभ्र ऊन\n• तापमान: 31°C | आर्द्रता: 45%\n• पाऊस शक्यता: 10% (अनुकूल स्थिती)`,
-        };
-      case 'ta':
-        return {
-          spokenText: `இன்று இந்தூர் பகுதியில் வானிலை தெளிவாக இருக்கும், வெப்பநிலை 31 டிகிரி மற்றும் மழை வாய்ப்பு 10 சதவீதம் மட்டுமே. பயிர் கொண்டு வர சாதகமானது.`,
-          displayText: `🌤️ **வானிலை அறிக்கை (தமிழ்):**\n• வானிலை: தெளிவான வெயில்\n• வெப்பநிலை: 31°C\n• மழை வாய்ப்பு: 10% (சாதகமானது)`,
-        };
-      case 'te':
-        return {
-          spokenText: `నేడు ఇండోర్ పరిసరాలలో వాతావరణం పొడిగా ఉంటుంది, ఉష్ణోగ్రత 31 డిగ్రీలు మరియు వర్షం పడే అవకాశం కేవలం 10 శాతం మాత్రమే. పంట రవాణాకు అనుకూలం.`,
-          displayText: `🌤️ **వాతావరణ సమాచారం (తెలుగు):**\n• వాతావరణం: ఎండగా ఉంటుంది\n• ఉష్ణోగ్రత: 31°C\n• వర్ష సూచన: 10% (రవాణాకు అనుకూలం)`,
+          spokenText: 'आजचे तापमान ' + temp + ' अंश आहे. ' + (isRain ? 'पावसाची शक्यता आहे.' : 'हवामान निरभ्र राहील.'),
+          displayText: '🌤️ **हवामान अंदाज (Real-time):**\n• तापमान: ' + temp + '°C\n• स्थिती: ' + desc
         };
       case 'en':
         return {
-          spokenText: `Today's weather in Indore is clear and sunny with a high of 31 degrees Celsius and only a 10 percent chance of rain. Ideal conditions for transporting produce to the mandi.`,
-          displayText: `🌤️ **Weather Forecast (Indore):**\n• Condition: Clear & Sunny\n• Temperature: 31°C | Humidity: 45%\n• Rain Probability: 10% (Safe for unloading)`,
+          spokenText: 'Current temperature is ' + temp + ' degrees. Conditions are ' + desc + '.',
+          displayText: '🌤️ **Live Weather:**\n• Temp: ' + temp + '°C\n• Status: ' + desc
         };
       default:
         return {
-          spokenText: `आज इंदौर क्षेत्र में मौसम साफ और धूप वाला रहेगा, तापमान 31 डिग्री रहेगा और बारिश की संभावना केवल 10 प्रतिशत है। फसल मंडी लाने के लिए मौसम अनुकूल है।`,
-          displayText: `🌤️ **मौसम पूर्वानुमान (इंदौर):**\n• **मौसम:** साफ धूप (Sunny)\n• **तापमान:** 31°C | **नमी:** 45%\n• **बारिश की संभावना:** 10% (परिवहन हेतु सुरक्षित)`,
+          spokenText: 'आज का तापमान ' + temp + ' डिग्री है। ' + rainTxt + '।',
+          displayText: '🌤️ **लाइव मौसम (Real-time):**\n• तापमान: ' + temp + '°C\n• स्थिति: ' + desc
+        };
+    }
+  }
+
+  // 2.5 NEAREST MANDI (GEO TRACKING)
+  if (q.includes('nearest') || q.includes('पास') || q.includes('नजदीक') || q.includes('जवळची') || q.includes('దగ్గర') || q.includes('அருகில்') || q.includes('जवळ')) {
+    let bestMandi = 'Indore APMC Mandi';
+    let distance = 12;
+    
+    if (coords) {
+      
+      const toRad = (value: number) => value * Math.PI / 180;
+      let minDistance = Infinity;
+      
+      for (const mandi of DISTRICT_RATES) {
+        if (!mandi.lat || !mandi.lon) continue;
+        const R = 6371; // km
+        const dLat = toRad(mandi.lat - coords.lat);
+        const dLon = toRad(mandi.lon - coords.lon);
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(toRad(coords.lat)) * Math.cos(toRad(mandi.lat)) * 
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const dist = R * c;
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestMandi = mandi.mandiName;
+        }
+      }
+      
+      if (minDistance !== Infinity) {
+        distance = Math.round(minDistance);
+      }
+    }
+    
+    switch (language) {
+      case 'en':
+        return {
+          spokenText: 'The nearest APMC Mandi is ' + bestMandi + ', which is approximately ' + distance + ' kilometers from your current location.',
+          displayText: '📍 **Nearest Mandi Found:**\n• Mandi: ' + bestMandi + '\n• Distance: ' + distance + ' km away'
+        };
+      default:
+        return {
+          spokenText: 'आपकी लोकेशन से सबसे नज़दीकी मंडी ' + bestMandi + ' है, जो लगभग ' + distance + ' किलोमीटर दूर है।',
+          displayText: '📍 **नज़दीकी मंडी (Live Geo):**\n• मंडी: ' + bestMandi + '\n• दूरी: ' + distance + ' कि.मी.'
         };
     }
   }

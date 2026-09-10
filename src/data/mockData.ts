@@ -475,7 +475,7 @@ export const AI_PREDICTION_MODELS: Record<string, AIPredictionData> = {
 export const DISTRICT_RATES: DistrictMandiRate[] = [
   {
     district: 'Indore',
-    mandiName: 'Indore APMC (Chhavani Yard)',
+    mandiName: 'Indore APMC (Chhavani Yard)', lat: 22.7196, lon: 75.8577,
     cropId: 'wheat',
     modalPrice: 2580,
     minPrice: 2490,
@@ -489,7 +489,7 @@ export const DISTRICT_RATES: DistrictMandiRate[] = [
   },
   {
     district: 'Ujjain',
-    mandiName: 'Ujjain Krishi Upaj Mandi',
+    mandiName: 'Ujjain Krishi Upaj Mandi', lat: 23.1765, lon: 75.7885,
     cropId: 'wheat',
     modalPrice: 2620,
     minPrice: 2520,
@@ -503,7 +503,7 @@ export const DISTRICT_RATES: DistrictMandiRate[] = [
   },
   {
     district: 'Dewas',
-    mandiName: 'Dewas Main Mandi Yard',
+    mandiName: 'Dewas Main Mandi Yard', lat: 22.9676, lon: 76.0534,
     cropId: 'wheat',
     modalPrice: 2550,
     minPrice: 2470,
@@ -517,7 +517,7 @@ export const DISTRICT_RATES: DistrictMandiRate[] = [
   },
   {
     district: 'Dhar',
-    mandiName: 'Dhar Krishi Upaj Mandi',
+    mandiName: 'Dhar Krishi Upaj Mandi', lat: 22.5939, lon: 75.3051,
     cropId: 'wheat',
     modalPrice: 2640,
     minPrice: 2540,
@@ -531,7 +531,7 @@ export const DISTRICT_RATES: DistrictMandiRate[] = [
   },
   {
     district: 'Sehore',
-    mandiName: 'Sehore Sharbati Special Mandi',
+    mandiName: 'Sehore Sharbati Special Mandi', lat: 23.2032, lon: 77.0844,
     cropId: 'wheat',
     modalPrice: 2750,
     minPrice: 2600,
@@ -546,7 +546,7 @@ export const DISTRICT_RATES: DistrictMandiRate[] = [
   // Mustard Rates
   {
     district: 'Morena',
-    mandiName: 'Morena Oilseed APMC',
+    mandiName: 'Morena Oilseed APMC', lat: 26.4947, lon: 78.0000,
     cropId: 'mustard',
     modalPrice: 6320,
     minPrice: 6150,
@@ -560,7 +560,7 @@ export const DISTRICT_RATES: DistrictMandiRate[] = [
   },
   {
     district: 'Bhind',
-    mandiName: 'Bhind Grain & Oilseed Mandi',
+    mandiName: 'Bhind Grain & Oilseed Mandi', lat: 26.5644, lon: 78.7891,
     cropId: 'mustard',
     modalPrice: 6260,
     minPrice: 6080,

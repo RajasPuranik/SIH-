@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Leaf, ArrowRight, Sparkles, Eye, EyeOff, PhoneCall } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, PhoneCall, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserRole, UserProfile } from '../types';
 
@@ -10,11 +10,9 @@ const ROLES = [
     title: 'Kissan / Farmer',
     hindiTitle: 'किसान',
     desc: 'Book mandi slots, track MSP status, get DBT payments',
-    border: 'border-emerald-500',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-800',
+    accent: 'border-l-emerald-500',
+    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     btn: 'bg-emerald-600 hover:bg-emerald-700',
-    badge: 'bg-emerald-100 text-emerald-700',
   },
   {
     role: 'mandi_officer' as UserRole,
@@ -22,11 +20,9 @@ const ROLES = [
     title: 'APMC Officer',
     hindiTitle: 'मंडी अधिकारी',
     desc: 'Scan QR tokens, quality assay, manage weighbridge',
-    border: 'border-blue-500',
-    bg: 'bg-blue-50',
-    text: 'text-blue-800',
+    accent: 'border-l-blue-500',
+    badge: 'bg-blue-50 text-blue-700 border-blue-200',
     btn: 'bg-blue-600 hover:bg-blue-700',
-    badge: 'bg-blue-100 text-blue-700',
   },
   {
     role: 'corporate_buyer' as UserRole,
@@ -34,16 +30,24 @@ const ROLES = [
     title: 'Corporate Buyer',
     hindiTitle: 'व्यापारी',
     desc: 'Place bids, trade on exchange, AI price forecasts',
-    border: 'border-indigo-500',
-    bg: 'bg-indigo-50',
-    text: 'text-indigo-800',
+    accent: 'border-l-indigo-500',
+    badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     btn: 'bg-indigo-600 hover:bg-indigo-700',
-    badge: 'bg-indigo-100 text-indigo-700',
+  },
+  {
+    role: 'admin' as UserRole,
+    icon: '🛡️',
+    title: 'System Admin',
+    hindiTitle: 'प्रशासक',
+    desc: 'Oversight, user registry, MSP controls & data export',
+    accent: 'border-l-slate-700',
+    badge: 'bg-slate-100 text-slate-700 border-slate-300',
+    btn: 'bg-slate-900 hover:bg-slate-800',
   },
 ];
 
 export const LoginPage: React.FC = () => {
-  const { loginUser, registerUser, openPhoneBot } = useApp();
+  const { loginUser, loginWithPhone, registerUser, isPhoneRegistered, openPhoneBot } = useApp();
   const [mode, setMode] = useState<'select' | 'login' | 'register'>('select');
   const [selectedRole, setSelectedRole] = useState<UserRole>('farmer');
   const [phone, setPhone] = useState('9826041239');
@@ -51,6 +55,8 @@ export const LoginPage: React.FC = () => {
   const [showOtp, setShowOtp] = useState(false);
   const [name, setName] = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const roleInfo = ROLES.find((r) => r.role === selectedRole)!;
 
@@ -58,293 +64,324 @@ export const LoginPage: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    if (otp !== '1234') {
+      setError('Invalid OTP. Use 1234 for demo.');
+      return;
+    }
     loginUser(selectedRole, '+91 ' + phone);
   };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !regPhone) return;
+    setError('');
+    setSuccess('');
+    if (!name.trim() || !regPhone.trim()) return;
+
     const baseProfile = {
-      name,
+      name: name.trim(),
       phone: '+91 ' + regPhone,
       email: regPhone + '@kisantrack.in',
       role: selectedRole,
-      avatar: selectedRole === 'farmer' ? '👨‍🌾' : selectedRole === 'mandi_officer' ? '👩‍💼' : '🏢',
+      avatar: selectedRole === 'farmer' ? '👨‍🌾' : selectedRole === 'mandi_officer' ? '👩‍💼' : selectedRole === 'corporate_buyer' ? '🏢' : '🛡️',
       state: 'Madhya Pradesh',
       district: 'Indore',
       primaryMandi: 'Indore APMC Mandi (Chhavani)',
     } as Omit<UserProfile, 'id' | 'createdAt'>;
-    registerUser(baseProfile);
+
+    const result = registerUser(baseProfile);
+    if (!result.success) {
+      setError(result.message);
+    } else {
+      setSuccess(result.message);
+    }
   };
+
+  /* ─── Shared outer wrapper ─── */
+  const PageShell: React.FC<{ children: React.ReactNode; narrow?: boolean }> = ({ children, narrow }) => (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className={`w-full ${narrow ? 'max-w-sm' : 'max-w-lg'}`}>
+        {/* Brand strip */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <span className="text-2xl">🌾</span>
+          <div>
+            <div className="text-base font-bold text-slate-900 tracking-tight leading-none">KisanTrack</div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider">SIH 2026 • किसान सेतु</div>
+          </div>
+        </div>
+        {children}
+        <p className="text-center text-[11px] text-slate-400 mt-5">
+          Ministry of Agriculture & Farmers Welfare • APMC Direct Procurement
+        </p>
+      </div>
+    </div>
+  );
 
   /* ─────────── LOGIN SCREEN ─────────── */
   if (mode === 'login') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm">
-          <button
-            onClick={() => setMode('select')}
-            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6 transition cursor-pointer"
-          >
-            <ArrowRight className="w-4 h-4 rotate-180" /> Back
-          </button>
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-            <div className={`p-5 border-b border-slate-100 ${roleInfo.bg}`}>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{roleInfo.icon}</span>
-                <div>
-                  <h2 className={`font-bold text-base ${roleInfo.text}`}>{roleInfo.title}</h2>
-                  <p className="text-xs text-slate-500">{roleInfo.hindiTitle} • KisanTrack Login</p>
-                </div>
+      <PageShell narrow>
+        <button
+          onClick={() => { setMode('select'); setError(''); }}
+          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs font-medium mb-4 transition cursor-pointer"
+        >
+          <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Back to Roles
+        </button>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className={`px-5 py-4 border-b border-slate-100 flex items-center gap-3 border-l-4 ${roleInfo.accent}`}>
+            <span className="text-2xl">{roleInfo.icon}</span>
+            <div>
+              <div className="font-bold text-sm text-slate-900">{roleInfo.title} Login</div>
+              <div className="text-xs text-slate-500">{roleInfo.hindiTitle} • KisanTrack Portal</div>
+            </div>
+          </div>
+          <form onSubmit={handleLogin} className="p-5 space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
+              </div>
+            )}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Mobile Number</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 bg-slate-50 border border-r-0 border-slate-300 rounded-l-lg text-sm text-slate-500 font-medium">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-r-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
+                  placeholder="10-digit mobile"
+                />
               </div>
             </div>
-            <form onSubmit={handleLogin} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Mobile Number</label>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl text-sm text-slate-500 font-medium">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-3 text-sm border border-slate-300 rounded-r-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium"
-                    placeholder="10-digit mobile"
-                  />
-                </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">OTP</label>
+                <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Demo: 1234</span>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-600">OTP (4-digit)</label>
-                  <span className="text-[11px] text-emerald-600 font-semibold">Demo OTP: 1234</span>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type={showOtp ? 'text' : 'password'}
-                    maxLength={4}
-                    required
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="flex-1 px-3 py-3 text-center text-lg font-bold tracking-widest border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
-                    placeholder="••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOtp(!showOtp)}
-                    className="px-3 text-slate-400 hover:text-slate-700 border border-slate-300 rounded-xl cursor-pointer"
-                  >
-                    {showOtp ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+              <div className="flex gap-2">
+                <input
+                  type={showOtp ? 'text' : 'password'}
+                  maxLength={4}
+                  required
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="flex-1 px-3 py-2.5 text-center text-base font-bold tracking-widest border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:outline-none font-mono"
+                  placeholder="••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOtp(!showOtp)}
+                  className="px-3 text-slate-400 hover:text-slate-700 border border-slate-300 rounded-lg cursor-pointer"
+                >
+                  {showOtp ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-              <button
-                type="submit"
-                className={`w-full py-3.5 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition ${roleInfo.btn}`}
-              >
-                Login to Dashboard <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('register')}
-                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer py-1"
-              >
-                New user? Create account →
-              </button>
-            </form>
-          </div>
+            </div>
+            <button
+              type="submit"
+              className={`w-full py-2.5 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-2 cursor-pointer transition ${roleInfo.btn}`}
+            >
+              Login to Dashboard <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('register'); setError(''); }}
+              className="w-full text-center text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer py-1"
+            >
+              New user? Create account →
+            </button>
+          </form>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   /* ─────────── REGISTER SCREEN ─────────── */
   if (mode === 'register') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm">
-          <button
-            onClick={() => setMode('select')}
-            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6 transition cursor-pointer"
-          >
-            <ArrowRight className="w-4 h-4 rotate-180" /> Back
-          </button>
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-            <div className={`p-5 border-b border-slate-100 ${roleInfo.bg}`}>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{roleInfo.icon}</span>
-                <div>
-                  <h2 className={`font-bold text-base ${roleInfo.text}`}>New {roleInfo.title}</h2>
-                  <p className="text-xs text-slate-500">Create your KisanTrack account</p>
-                </div>
+      <PageShell narrow>
+        <button
+          onClick={() => { setMode('select'); setError(''); setSuccess(''); }}
+          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs font-medium mb-4 transition cursor-pointer"
+        >
+          <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Back to Roles
+        </button>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className={`px-5 py-4 border-b border-slate-100 flex items-center gap-3 border-l-4 ${roleInfo.accent}`}>
+            <span className="text-2xl">{roleInfo.icon}</span>
+            <div>
+              <div className="font-bold text-sm text-slate-900">Create Account — {roleInfo.title}</div>
+              <div className="text-xs text-slate-500">Your data will be saved locally for this device</div>
+            </div>
+          </div>
+          <form onSubmit={handleRegister} className="p-5 space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
+              </div>
+            )}
+            {success && (
+              <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> {success}
+              </div>
+            )}
+
+            {/* Role selector */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Select Role</label>
+              <div className="grid grid-cols-2 gap-2">
+                {ROLES.map((r) => (
+                  <button
+                    key={r.role}
+                    type="button"
+                    onClick={() => setSelectedRole(r.role)}
+                    className={`px-3 py-2.5 rounded-lg border text-left transition cursor-pointer ${
+                      selectedRole === r.role
+                        ? `border-slate-900 bg-slate-900 text-white`
+                        : 'border-slate-200 hover:border-slate-400 text-slate-700'
+                    }`}
+                  >
+                    <span className="text-base mr-1.5">{r.icon}</span>
+                    <span className="text-xs font-semibold">{r.title.split('/')[0].trim()}</span>
+                  </button>
+                ))}
               </div>
             </div>
-            <form onSubmit={handleRegister} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-2">Select Role</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {ROLES.map((r) => (
-                    <button
-                      key={r.role}
-                      type="button"
-                      onClick={() => setSelectedRole(r.role)}
-                      className={`p-2 rounded-xl border-2 text-center transition cursor-pointer ${
-                        selectedRole === r.role ? `${r.border} ${r.bg}` : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="text-xl">{r.icon}</div>
-                      <div className={`text-[10px] font-bold mt-1 ${selectedRole === r.role ? r.text : 'text-slate-600'}`}>
-                        {r.title.split('/')[0].trim()}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Rameshwar Patidar"
+                className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Mobile Number *</label>
+                {regPhone.length === 10 && (
+                  isPhoneRegistered(regPhone)
+                    ? <span className="text-[11px] text-red-500 font-semibold">Already registered</span>
+                    : <span className="text-[11px] text-emerald-600 font-semibold">Available ✓</span>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Full Name *</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 bg-slate-50 border border-r-0 border-slate-300 rounded-l-lg text-sm text-slate-500 font-medium">
+                  +91
+                </span>
                 <input
-                  type="text"
+                  type="tel"
+                  maxLength={10}
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Rameshwar Patidar"
-                  className="w-full px-3 py-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  value={regPhone}
+                  onChange={(e) => { setRegPhone(e.target.value); setError(''); }}
+                  placeholder="10-digit mobile"
+                  className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-r-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Mobile Number *</label>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl text-sm text-slate-500 font-medium">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    required
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="10-digit mobile"
-                    className="w-full px-3 py-3 text-sm border border-slate-300 rounded-r-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                className={`w-full py-3.5 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition ${roleInfo.btn}`}
-              >
-                Create Account <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('login')}
-                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer py-1"
-              >
-                Already have an account? Login →
-              </button>
-            </form>
-          </div>
+            </div>
+
+            <button
+              type="submit"
+              className={`w-full py-2.5 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-2 cursor-pointer transition ${roleInfo.btn}`}
+            >
+              Create Account <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+              className="w-full text-center text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer py-1"
+            >
+              Already have an account? Login →
+            </button>
+          </form>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   /* ─────────── ROLE SELECTION (default) ─────────── */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 flex flex-col">
-      {/* Header */}
-      <div className="pt-10 pb-6 px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold mb-4">
-          <Leaf className="w-3.5 h-3.5" />
-          KisanTrack • SIH 2026
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">किसान सेतु</h1>
-        <p className="text-emerald-300 text-sm mt-2 max-w-xs mx-auto">
-          Zero-wait mandi entry, guaranteed MSP payments &amp; live crop exchange
-        </p>
-      </div>
-
-      {/* Cards */}
-      <div className="flex-1 flex items-start justify-center px-4 pb-8">
-        <div className="w-full max-w-md space-y-4">
-          {/* Quick demo */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-bold text-white">Quick Demo Login</span>
-              <span className="text-[10px] text-slate-400 ml-auto">Pre-seeded profiles</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {ROLES.map((r) => (
-                <button
-                  key={r.role}
-                  onClick={() => handleQuickLogin(r.role)}
-                  className="p-3 bg-white/10 hover:bg-white/20 rounded-xl text-center transition cursor-pointer border border-white/10 hover:border-white/20"
-                >
-                  <div className="text-2xl mb-1">{r.icon}</div>
-                  <div className="text-[11px] font-bold text-white">{r.title.split('/')[0].trim()}</div>
-                  <div className="text-[10px] text-slate-400">{r.hindiTitle}</div>
-                </button>
-              ))}
-            </div>
+    <PageShell>
+      <div className="space-y-4">
+        {/* Quick Demo Strip */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Quick Demo Login</span>
+            <span className="text-[10px] text-slate-400">Pre-seeded profiles · No registration needed</span>
           </div>
-
-          {/* Toll-Free Phone Bot Card */}
-          <div className="bg-gradient-to-r from-emerald-950/90 to-teal-950/90 rounded-2xl p-3.5 border border-emerald-500/40 flex items-center justify-between gap-3 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shrink-0 border border-emerald-500/30 animate-pulse">
-                📞
-              </div>
-              <div>
-                <div className="font-bold text-white text-xs sm:text-sm">किसान फोन बॉट (Voice AI)</div>
-                <div className="text-[10px] text-emerald-300">Toll-Free: 1800-180-1551 • बिना इंटरनेट कॉल करें</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => openPhoneBot('inbound')}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer shrink-0 flex items-center gap-1.5"
-            >
-              <PhoneCall className="w-3.5 h-3.5" />
-              <span>कॉल करें</span>
-            </button>
-          </div>
-
-          {/* Role login buttons */}
-          <div className="space-y-2.5">
-            <p className="text-xs text-slate-400 text-center font-medium">
-              Or choose your role to login / register
-            </p>
+          <div className="grid grid-cols-4 gap-2">
             {ROLES.map((r) => (
               <button
                 key={r.role}
-                onClick={() => {
-                  setSelectedRole(r.role);
-                  setMode('login');
-                }}
-                className="w-full flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl transition cursor-pointer text-left"
+                onClick={() => handleQuickLogin(r.role)}
+                className="flex flex-col items-center gap-1 py-3 px-1 rounded-lg border border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition cursor-pointer"
               >
-                <span className="text-2xl shrink-0">{r.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-white text-sm">{r.title}</div>
-                  <div className="text-xs text-slate-400 truncate">{r.desc}</div>
-                </div>
-                <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${r.badge}`}>
-                  {r.hindiTitle}
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-xl">{r.icon}</span>
+                <span className="text-[10px] font-semibold text-slate-700 text-center leading-tight">{r.title.split('/')[0].trim()}</span>
+                <span className="text-[9px] text-slate-400">{r.hindiTitle}</span>
               </button>
             ))}
           </div>
+        </div>
 
-          <div className="text-center pt-2">
-            <span className="text-[11px] text-slate-500">
-              Solving: Farmers face long waiting times, lack of info &amp; status uncertainty
-            </span>
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-slate-200" />
+          <span className="text-xs text-slate-400">or login / register by role</span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {/* Role list */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+          {ROLES.map((r) => (
+            <button
+              key={r.role}
+              onClick={() => { setSelectedRole(r.role); setMode('login'); }}
+              className={`w-full flex items-center gap-4 px-4 py-3.5 hover:bg-slate-50 transition cursor-pointer text-left border-l-4 ${r.accent}`}
+            >
+              <span className="text-xl shrink-0">{r.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm text-slate-900">{r.title}</div>
+                <div className="text-xs text-slate-500 truncate">{r.desc}</div>
+              </div>
+              <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full shrink-0 ${r.badge}`}>
+                {r.hindiTitle}
+              </span>
+              <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
+            </button>
+          ))}
+        </div>
+
+        {/* Voice Bot Banner */}
+        <div className="bg-slate-900 rounded-xl p-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-lg shrink-0">
+              📞
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white">किसान फोन बॉट</div>
+              <div className="text-[11px] text-slate-400">Toll-Free: 1800-180-1551 • No internet needed</div>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => openPhoneBot('inbound')}
+            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition cursor-pointer shrink-0 flex items-center gap-1.5"
+          >
+            <PhoneCall className="w-3.5 h-3.5" /> कॉल
+          </button>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };

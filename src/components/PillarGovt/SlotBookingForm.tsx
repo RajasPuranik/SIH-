@@ -17,16 +17,20 @@ import { useApp } from '../../context/AppContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const SlotBookingForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
-  const { crops, createBooking, playFeedbackTone } = useApp();
+  const { crops, createBooking, playFeedbackTone, currentUser } = useApp();
   const { t } = useLanguage();
 
+  // Pre-fill from currentUser if available
+  const prefillPhone = currentUser?.phone?.replace(/\D/g, '').slice(-10) ?? '9826041239';
+  const prefillName = currentUser?.name ?? 'Rameshwar Patidar';
+
   const [formData, setFormData] = useState({
-    farmerName: 'Rameshwar Patidar',
-    farmerPhone: '9826041239',
+    farmerName: prefillName,
+    farmerPhone: prefillPhone,
     aadhaarNumber: '5819', // last 4 digits
-    state: 'Madhya Pradesh',
-    district: 'Indore',
-    mandiName: 'Indore APMC Mandi (Chhavani)',
+    state: currentUser?.state ?? 'Madhya Pradesh',
+    district: currentUser?.district ?? 'Indore',
+    mandiName: currentUser?.primaryMandi ?? 'Indore APMC Mandi (Chhavani)',
     cropId: 'wheat',
     quantity: '75',
     vehicleType: 'Tractor Trolley' as const,

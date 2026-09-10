@@ -9,6 +9,7 @@ import {
   UserProfile,
 } from '../types';
 import { CROPS_DATA, INITIAL_BOOKINGS, INITIAL_ORDER_BOOK } from '../data/mockData';
+import { usePersistentState } from '../hooks/usePersistentState';
 
 export interface NotificationItem {
   id: string;
@@ -74,6 +75,23 @@ export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
     buyerType: 'Corporate',
     escrowBalance: 1850000,
   },
+  admin: {
+    id: 'usr-admin-01',
+    name: 'Rajesh Sharma (Central APMC Admin)',
+    phone: '+91 99999 00001',
+    email: 'admin.board@kisantrack.gov.in',
+    role: 'admin',
+    avatar: '🛡️',
+    state: 'Central Jurisdiction',
+    district: 'New Delhi / Central HQ',
+    primaryMandi: 'All Mandis (National Regulator)',
+    createdAt: '2022-01-01',
+    designation: 'Chief Director of Agricultural Market Intelligence',
+    department: 'Department of Agriculture & Farmers Welfare',
+    adminRoleTitle: 'Super Administrator',
+    permissions: ['all_mandis_read_write', 'price_master_override', 'token_audit', 'data_export'],
+    accessLevel: 'Super Admin',
+  },
 };
 
 interface AppContextType {
@@ -84,8 +102,10 @@ interface AppContextType {
   selectedCropId: string;
   setSelectedCropId: (id: string) => void;
   crops: CropInfo[];
+  updateCropMSP: (cropId: string, newMsp: number, newPrivatePrice?: number) => void;
 
   // User Auth & Profile
+  users: UserProfile[];
   currentUser: UserProfile;
   setCurrentUser: (user: UserProfile) => void;
   isLoggedIn: boolean;
@@ -96,7 +116,9 @@ interface AppContextType {
   isProfileModalOpen: boolean;
   setIsProfileModalOpen: (open: boolean) => void;
   loginUser: (role: UserRole, phoneOrId?: string, name?: string) => void;
-  registerUser: (profile: Omit<UserProfile, 'id' | 'createdAt'>) => void;
+  loginWithPhone: (phone: string) => { success: boolean; message: string };
+  registerUser: (profile: Omit<UserProfile, 'id' | 'createdAt'>) => { success: boolean; message: string };
+  isPhoneRegistered: (phone: string) => boolean;
   logoutUser: () => void;
   updateUserProfile: (updated: Partial<UserProfile>) => void;
 
@@ -146,12 +168,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [userRole, setUserRoleState] = useState<UserRole>('farmer');
   const [selectedCropId, setSelectedCropId] = useState<string>('wheat');
   const [crops, setCrops] = useState<CropInfo[]>(CROPS_DATA);
-  const [bookings, setBookings] = useState<SlotBooking[]>(INITIAL_BOOKINGS);
+  const [bookings, setBookings] = usePersistentState<SlotBooking[]>('kt_bookings', INITIAL_BOOKINGS);
   const [activeBookingId, setActiveBookingId] = useState<string>(INITIAL_BOOKINGS[0].id);
-  const [orderBook, setOrderBook] = useState<OrderBookItem[]>(INITIAL_ORDER_BOOK);
+  const [orderBook, setOrderBook] = usePersistentState<OrderBookItem[]>('kt_orderBook', INITIAL_ORDER_BOOK);
 
-  // Auth State — null means not logged in
-  const [currentUser, setCurrentUserState] = useState<UserProfile | null>(null);
+  // Auth State — null means not logged in; persisted so session survives refresh
+  const [users, setUsers] = usePersistentState<UserProfile[]>('kt_users', []);
+  const [currentUser, setCurrentUserState] = usePersistentState<UserProfile | null>('kt_current_user', null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -231,8 +254,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications((prev) => [newNotif, ...prev]);
   };
 
+  const isPhoneRegistered = (phone: string): boolean => {
+    const normalized = phone.replace(/\D/g, '').slice(-10);
+    return users.some(u => u.phone.replace(/\D/g, '').slice(-10) === normalized);
+  };
+
+  const getUserByPhone = (phone: string): UserProfile | null => {
+    const normalized = phone.replace(/\D/g, '').slice(-10);
+    return users.find(u => u.phone.replace(/\D/g, '').slice(-10) === normalized) ?? null;
+  };
+
   const loginUser = (role: UserRole, phoneOrId?: string, name?: string) => {
     setUserRoleState(role);
+    // If a phone is provided, check if user is already registered
+    if (phoneOrId) {
+      const existingUser = getUserByPhone(phoneOrId);
+      if (existingUser) {
+        setCurrentUserState(existingUser);
+        setIsAuthModalOpen(false);
+        setActivePillar(existingUser.role === 'corporate_buyer' ? 'exchange' : 'govt');
+        playFeedbackTone('success');
+        addNotification({
+          type: 'SYSTEM',
+          title: 'Welcome back, ' + existingUser.name.split(' ')[0] + '!',
+          message: 'Logged in with your registered profile.',
+        });
+        return;
+      }
+    }
     const baseProfile = DEMO_PROFILES[role];
     const loggedUser: UserProfile = {
       ...baseProfile,
@@ -245,22 +294,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     else if (role === 'corporate_buyer') setActivePillar('exchange');
     else setActivePillar('govt');
     playFeedbackTone('success');
+    const roleTitle =
+      role === 'farmer'
+        ? 'Kissan'
+        : role === 'mandi_officer'
+        ? 'APMC Officer'
+        : role === 'corporate_buyer'
+        ? 'Corporate Buyer'
+        : 'System Administrator';
     addNotification({
       type: 'SYSTEM',
       title: 'Welcome, ' + loggedUser.name.split(' ')[0] + '!',
-      message:
-        'You are logged in as ' +
-        (role === 'farmer' ? 'Kissan' : role === 'mandi_officer' ? 'APMC Officer' : 'Corporate Buyer') +
-        '. Your dashboard is ready.',
+      message: 'You are logged in as ' + roleTitle + '. Your dashboard is ready.',
     });
   };
 
-  const registerUser = (newProfile: Omit<UserProfile, 'id' | 'createdAt'>) => {
+  const loginWithPhone = (phone: string): { success: boolean; message: string } => {
+    const user = getUserByPhone(phone);
+    if (!user) {
+      return { success: false, message: 'No account found for this phone number. Please register first.' };
+    }
+    setUserRoleState(user.role);
+    setCurrentUserState(user);
+    setIsAuthModalOpen(false);
+    setActivePillar(user.role === 'corporate_buyer' ? 'exchange' : 'govt');
+    playFeedbackTone('success');
+    addNotification({
+      type: 'SYSTEM',
+      title: 'Welcome back, ' + user.name.split(' ')[0] + '!',
+      message: 'You are logged in with your registered profile.',
+    });
+    return { success: true, message: 'Logged in successfully.' };
+  };
+
+  const registerUser = (newProfile: Omit<UserProfile, 'id' | 'createdAt'>): { success: boolean; message: string } => {
+    const phone = newProfile.phone;
+    if (isPhoneRegistered(phone)) {
+      return { success: false, message: 'This phone number is already registered. Please login instead.' };
+    }
     const registered: UserProfile = {
       ...newProfile,
       id: 'usr-' + Date.now(),
       createdAt: new Date().toISOString().split('T')[0],
     };
+    setUsers((prev) => [...prev, registered]);
     setUserRoleState(registered.role);
     setCurrentUserState(registered);
     setIsAuthModalOpen(false);
@@ -270,8 +347,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addNotification({
       type: 'SYSTEM',
       title: 'Account Registered Successfully',
-      message: 'Welcome to KisanTrack, ' + registered.name + '!',
+      message: 'Welcome to KisanTrack, ' + registered.name + '! Your profile has been saved.',
     });
+    return { success: true, message: 'Registered successfully!' };
   };
 
   const logoutUser = () => {
@@ -531,6 +609,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: 'Trade matched! Escrow deposit initiated.' };
   };
 
+  const updateCropMSP = (cropId: string, newMsp: number, newPrivatePrice?: number) => {
+    setCrops((prev) =>
+      prev.map((c) =>
+        c.id === cropId
+          ? {
+              ...c,
+              mspRate: newMsp,
+              currentPrivatePrice: newPrivatePrice !== undefined ? newPrivatePrice : c.currentPrivatePrice,
+            }
+          : c
+      )
+    );
+    playFeedbackTone('success');
+    addNotification({
+      type: 'SYSTEM',
+      title: 'MSP Benchmark Updated',
+      message: `Updated MSP for ${cropId.toUpperCase()} to ₹${newMsp}/Quintal.`,
+    });
+  };
+
   const markNotificationAsRead = (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
@@ -548,6 +646,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedCropId,
         setSelectedCropId,
         crops,
+        updateCropMSP,
+        users,
         currentUser: effectiveUser,
         setCurrentUser,
         isLoggedIn,
@@ -558,7 +658,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isProfileModalOpen,
         setIsProfileModalOpen,
         loginUser,
+        loginWithPhone,
         registerUser,
+        isPhoneRegistered,
         logoutUser,
         updateUserProfile,
         bookings,

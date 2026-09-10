@@ -1,0 +1,6 @@
+# Voice backend dependencies (STT + TTS)
+# Install with: pip install -r server/requirements.txt
+fastapi>=0.115
+uvicorn[standard]>=0.30
+faster-whisper>=1.0.3
+edge-tts>=6.1.12

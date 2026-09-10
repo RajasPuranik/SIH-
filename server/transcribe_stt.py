@@ -23,7 +23,9 @@ def transcribe_audio_data(audio_data, primary_lang='hi-IN'):
     
     for lang in candidates:
         try:
+            print(f"Trying STT with language: {lang}", file=sys.stderr)
             text = r.recognize_google(audio_data, language=lang)
+            print(f"Got result: {text}", file=sys.stderr)
             if text and text.strip():
                 short_lang = REV_LANG_MAP.get(lang, 'hi')
                 return {
@@ -32,12 +34,16 @@ def transcribe_audio_data(audio_data, primary_lang='hi-IN'):
                     "lang": short_lang
                 }
         except sr.UnknownValueError:
+            print(f"UnknownValueError for {lang}", file=sys.stderr)
             continue
         except sr.RequestError as e:
+            print(f"RequestError for {lang}: {e}", file=sys.stderr)
             return {"success": False, "error": f"Google Speech API error: {e}"}
-        except Exception:
+        except Exception as e:
+            print(f"Other error for {lang}: {e}", file=sys.stderr)
             continue
             
+    print("All dialects failed, returning empty transcript", file=sys.stderr)
     return {"success": True, "transcript": "", "lang": REV_LANG_MAP.get(primary_lang, 'hi')}
 
 def transcribe(audio_source, primary_lang='hi-IN'):

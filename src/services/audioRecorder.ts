@@ -1,4 +1,16 @@
 // Web Audio API recorder that encodes 16kHz 16-bit Mono WAV and calls /api/stt
+//
+// v2 changes (voicebot overhaul):
+//  - The old recorder used FIXED volume thresholds to decide "is the user
+//    interrupting the bot?". On real devices the mic always picks up some of
+//    the bot's own voice through the speaker (echo), and that echo level
+//    varies with device volume, so a fixed number was either too low (bot
+//    interrupts itself on its own echo) or too high (real barge-in never
+//    triggers, so "it keeps talking"). This version measures the actual
+//    echo level for every utterance the bot speaks and sets the barge-in
+//    threshold relative to that measured floor instead of a guess.
+//  - Barge-in now requires a short run of consecutive loud frames (not a
+//    single 128ms blip) before it fires, which filters out clicks/pops.
 
 export interface AudioRecorderOptions {
   sampleRate?: number;
@@ -8,8 +20,19 @@ export interface AudioRecorderOptions {
   onVoiceInterrupt?: () => void;
   isBotSpeaking?: () => boolean;
   silenceDurationMs?: number;
+  /** Minimum RMS that counts as "someone is speaking" when the bot is silent. */
   speechThreshold?: number;
-  botSpeakingThreshold?: number;
+  /**
+   * How many times louder than the measured echo floor a sound must be
+   * before it's treated as the user barging in over the bot. 2.0-2.5 is a
+   * good default; lower it if barge-in feels unresponsive, raise it if the
+   * bot keeps interrupting itself.
+   */
+  interruptMultiplier?: number;
+  /** Consecutive loud frames required to confirm a barge-in (debounce). */
+  interruptMinFrames?: number;
+  /** Grace period (ms) after the bot starts talking, used purely to sample the echo floor for THIS utterance before barge-in detection turns on. */
+  bargeInSettleMs?: number;
 }
 
 export class AudioRecorder {
@@ -24,15 +47,24 @@ export class AudioRecorder {
   private hasSpoken = false;
   private isMuted = false;
   private silenceTimer: any = null;
-  private ambientNoise = 0.005;
   private options: AudioRecorderOptions;
+
+  // Adaptive levels, continuously re-estimated while the recorder runs.
+  private ambientNoise = 0.004; // room noise floor while bot is silent
+  private echoFloor = 0.006; // speaker->mic leakage floor while bot is talking
+  private wasBotSpeaking = false;
+  private botSpeakingStartedAt = 0;
+  private interruptStreak = 0;
+  private lastDebugLogAt = 0;
 
   constructor(options: AudioRecorderOptions = {}) {
     this.options = {
       sampleRate: 16000,
-      silenceDurationMs: 650,
+      silenceDurationMs: 1200,
       speechThreshold: 0.010,
-      botSpeakingThreshold: 0.035,
+      interruptMultiplier: 2.2,
+      interruptMinFrames: 2,
+      bargeInSettleMs: 280,
       ...options,
     };
   }
@@ -67,7 +99,9 @@ export class AudioRecorder {
     this.isRecording = true;
     this.hasSpoken = false;
     this.isMuted = false;
-    this.ambientNoise = 0.005;
+    this.wasBotSpeaking = false;
+    this.botSpeakingStartedAt = 0;
+    this.interruptStreak = 0;
 
     this.processorNode.onaudioprocess = (e) => {
       if (!this.isRecording || this.isMuted) return;
@@ -88,87 +122,130 @@ export class AudioRecorder {
       }
 
       const botIsSpeaking = this.options.isBotSpeaking ? this.options.isBotSpeaking() : false;
+      const now = performance.now();
 
-      // Adaptively track ambient noise floor when quiet
-      if (!this.hasSpoken && !botIsSpeaking && rms < 0.02) {
-        this.ambientNoise = this.ambientNoise * 0.92 + rms * 0.08;
+      if (botIsSpeaking && !this.wasBotSpeaking) {
+        // Bot just started a new utterance: start a fresh settle window so we
+        // can measure how loud ITS OWN echo is before treating anything as barge-in.
+        this.botSpeakingStartedAt = now;
+        this.interruptStreak = 0;
       }
+      this.wasBotSpeaking = botIsSpeaking;
 
-      // Dynamic thresholds
-      const normalThreshold = Math.max(
-        this.options.speechThreshold || 0.010,
-        Math.min(0.025, this.ambientNoise * 2.2)
-      );
-      const interruptThreshold = Math.max(
-        this.options.botSpeakingThreshold || 0.035,
-        this.ambientNoise * 3.2
-      );
+      if (botIsSpeaking) {
+        const elapsed = now - this.botSpeakingStartedAt;
+        const settleMs = this.options.bargeInSettleMs ?? 280;
 
-      // 1. BARGE-IN: If bot is speaking and user speaks any word, immediately stop bot!
-      if (botIsSpeaking && rms > interruptThreshold) {
-        if (this.options.onVoiceInterrupt) {
-          this.options.onVoiceInterrupt();
+        if (elapsed < settleMs) {
+          // Pure calibration window: this energy is (almost certainly) just
+          // the bot's own voice leaking into the mic. Use it to learn the
+          // echo floor for this utterance instead of reacting to it.
+          this.echoFloor = this.echoFloor * 0.6 + rms * 0.4;
+          this.interruptStreak = 0;
+          return;
         }
-        // Immediately start capturing user utterance from this chunk
-        this.pcmBuffers = [chunk];
-        this.totalSamples = chunk.length;
-        this.preRollBuffers = [];
-        this.hasSpoken = true;
-        if (this.options.onSpeechStart) {
-          this.options.onSpeechStart();
-        }
-        if (this.silenceTimer) {
-          clearTimeout(this.silenceTimer);
-          this.silenceTimer = null;
-        }
-        return;
-      }
 
-      // 2. NORMAL VOICE ACTIVITY DETECTION
-      if (!botIsSpeaking) {
-        if (rms > normalThreshold) {
-          if (!this.hasSpoken) {
-            this.hasSpoken = true;
-            // Prepend pre-roll buffer (approx 350ms of audio before threshold was hit)
-            this.pcmBuffers = [...this.preRollBuffers, chunk];
-            this.totalSamples = this.pcmBuffers.reduce((acc, c) => acc + c.length, 0);
-            this.preRollBuffers = [];
+        const dynamicThreshold = Math.max(
+          this.options.speechThreshold || 0.003,
+          this.echoFloor * (this.options.interruptMultiplier ?? 2.2)
+        );
 
-            if (this.options.onSpeechStart) {
-              this.options.onSpeechStart();
-            }
-          } else {
-            // User continues speaking
-            this.pcmBuffers.push(chunk);
-            this.totalSamples += chunk.length;
+        if (rms > dynamicThreshold) {
+          this.interruptStreak += 1;
+        } else {
+          this.interruptStreak = 0;
+          // Keep tracking the echo floor slowly during quiet-ish stretches too,
+          // in case playback volume drifts mid-sentence.
+          this.echoFloor = this.echoFloor * 0.98 + rms * 0.02;
+        }
+
+        const framesNeeded = this.options.interruptMinFrames ?? 2;
+        if (this.interruptStreak >= framesNeeded) {
+          console.log(
+            `[VAD] Barge-in confirmed. RMS ${rms.toFixed(4)} vs echo floor ${this.echoFloor.toFixed(4)} (x${(this.options.interruptMultiplier ?? 2.2).toFixed(1)})`
+          );
+          this.interruptStreak = 0;
+          if (this.options.onVoiceInterrupt) {
+            this.options.onVoiceInterrupt();
           }
-
-          // Reset silence timer while speech is active
+          // Immediately start capturing the user's utterance from this chunk.
+          this.pcmBuffers = [chunk];
+          this.totalSamples = chunk.length;
+          this.preRollBuffers = [];
+          this.hasSpoken = true;
+          if (this.options.onSpeechStart) {
+            this.options.onSpeechStart();
+          }
           if (this.silenceTimer) {
             clearTimeout(this.silenceTimer);
             this.silenceTimer = null;
           }
-        } else {
-          // Below speech threshold
-          if (this.hasSpoken) {
-            // User has spoken and is now pausing/silent
-            this.pcmBuffers.push(chunk);
-            this.totalSamples += chunk.length;
+        }
+        return;
+      }
 
-            if (!this.silenceTimer) {
-              this.silenceTimer = setTimeout(() => {
-                if (this.options.onSilenceTimeout) {
-                  this.options.onSilenceTimeout();
-                }
-              }, this.options.silenceDurationMs || 650);
-            }
-          } else {
-            // Speech has not started yet; maintain a rolling 3-chunk pre-roll buffer (~384ms)
-            this.preRollBuffers.push(chunk);
-            if (this.preRollBuffers.length > 3) {
-              this.preRollBuffers.shift();
-            }
+      // --- Bot is silent: normal voice activity detection, with the speech
+      // threshold anchored to the measured room-noise floor rather than a
+      // single fixed number that may be wrong for a noisy mandi or a quiet room.
+      const normalThreshold = Math.max(this.options.speechThreshold || 0.003, this.ambientNoise * 2.5);
+
+      // Twice-a-second debug readout: if you say something and the "rms"
+      // number below never gets anywhere close to "threshold", the mic
+      // input itself is too quiet for this device/browser and the
+      // threshold needs lowering further (or the input gain needs raising
+      // at the OS level) — this is not a code bug at that point, it's a
+      // hardware/gain calibration issue specific to your mic.
+      if (now - this.lastDebugLogAt > 500) {
+        this.lastDebugLogAt = now;
+        console.log(
+          `[VAD] rms=${rms.toFixed(4)} threshold=${normalThreshold.toFixed(4)} ambientFloor=${this.ambientNoise.toFixed(4)} hasSpoken=${this.hasSpoken}`
+        );
+      }
+
+      if (rms > normalThreshold) {
+        if (!this.hasSpoken) {
+          this.hasSpoken = true;
+          // Prepend pre-roll buffer (approx 350ms of audio before threshold was hit)
+          this.pcmBuffers = [...this.preRollBuffers, chunk];
+          this.totalSamples = this.pcmBuffers.reduce((acc, c) => acc + c.length, 0);
+          this.preRollBuffers = [];
+
+          if (this.options.onSpeechStart) {
+            this.options.onSpeechStart();
           }
+        } else {
+          // User continues speaking
+          this.pcmBuffers.push(chunk);
+          this.totalSamples += chunk.length;
+        }
+
+        // Reset silence timer while speech is active
+        if (this.silenceTimer) {
+          clearTimeout(this.silenceTimer);
+          this.silenceTimer = null;
+        }
+      } else {
+        // Below speech threshold
+        if (this.hasSpoken) {
+          // User has spoken and is now pausing/silent
+          this.pcmBuffers.push(chunk);
+          this.totalSamples += chunk.length;
+
+          if (!this.silenceTimer) {
+            this.silenceTimer = setTimeout(() => {
+              if (this.options.onSilenceTimeout) {
+                this.options.onSilenceTimeout();
+              }
+            }, this.options.silenceDurationMs || 650);
+          }
+        } else {
+          // Speech has not started yet; maintain a rolling 3-chunk pre-roll buffer (~384ms)
+          this.preRollBuffers.push(chunk);
+          if (this.preRollBuffers.length > 3) {
+            this.preRollBuffers.shift();
+          }
+          // Also use this quiet stretch to keep the ambient noise estimate fresh.
+          this.ambientNoise = this.ambientNoise * 0.97 + rms * 0.03;
         }
       }
     };
@@ -332,7 +409,8 @@ export async function transcribeWavWithApi(
   lang: string = 'hi'
 ): Promise<{ success: boolean; transcript: string; error?: string }> {
   try {
-    const response = await fetch(`/api/stt?lang=${encodeURIComponent(lang)}`, {
+    const baseUrl = import.meta.env.VITE_API_BASE || '/api';
+    const response = await fetch(`${baseUrl}/stt?lang=${encodeURIComponent(lang)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'audio/wav',
@@ -356,5 +434,104 @@ export async function transcribeWavWithApi(
       transcript: '',
       error: err?.message || 'Network error connecting to STT server',
     };
+  }
+}
+
+
+// --- WEB SPEECH API (Native Browser STT) ---
+// Kept as an optional fallback path. Not used by default because browser
+// support/accuracy for Hindi & Marathi via this API is inconsistent across
+// devices, but it's here (and free, zero-latency) if you want to wire it in
+// as an instant first guess while the server-based transcription confirms.
+export class SpeechRecognitionService {
+  private recognition: any = null;
+  private isRecording = false;
+  private onResult: (text: string, isFinal: boolean) => void;
+  private onEnd: () => void;
+  private onError: (err: any) => void;
+
+  constructor(
+    onResult: (text: string, isFinal: boolean) => void,
+    onEnd: () => void,
+    onError: (err: any) => void
+  ) {
+    this.onResult = onResult;
+    this.onEnd = onEnd;
+    this.onError = onError;
+  }
+
+  start(lang: string = 'hi-IN') {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      this.onError(new Error('SpeechRecognition not supported in this browser.'));
+      return;
+    }
+
+    if (this.recognition && this.isRecording) {
+      this.stop();
+    }
+
+    this.recognition = new SpeechRecognition();
+    this.recognition.continuous = true;
+    this.recognition.interimResults = true;
+
+    // Map internal lang to BCP-47
+    const langMap: Record<string, string> = {
+      hi: 'hi-IN',
+      mr: 'mr-IN',
+      en: 'en-IN',
+    };
+    this.recognition.lang = langMap[lang] || lang;
+    this.recognition.maxAlternatives = 1;
+
+    let finalTranscript = '';
+
+    this.recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+          this.onResult(event.results[i][0].transcript, true);
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+          this.onResult(interimTranscript, false);
+        }
+      }
+    };
+
+    this.recognition.onerror = (event: any) => {
+      if (event.error === 'no-speech') return; // Ignore simple silence timeouts
+      this.onError(event.error);
+    };
+
+    this.recognition.onend = () => {
+      this.isRecording = false;
+      this.onEnd();
+    };
+
+    try {
+      this.recognition.start();
+      this.isRecording = true;
+    } catch (e) {
+      this.onError(e);
+    }
+  }
+
+  stop() {
+    if (this.recognition && this.isRecording) {
+      try {
+        this.recognition.stop();
+      } catch (e) {}
+      this.isRecording = false;
+    }
+  }
+
+  abort() {
+    if (this.recognition && this.isRecording) {
+      try {
+        this.recognition.abort();
+      } catch (e) {}
+      this.isRecording = false;
+    }
   }
 }

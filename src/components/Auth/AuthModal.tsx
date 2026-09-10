@@ -40,6 +40,9 @@ export const AuthModal: React.FC = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [enteredOtp, setEnteredOtp] = useState('1234');
 
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   // Register form state
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState('');
@@ -83,18 +86,18 @@ export const AuthModal: React.FC = () => {
       title: 'Kissan / Farmer',
       hindiTitle: 'किसान',
       badge: 'MSP & Private Market',
-      icon: '🌾',
+      icon: '👨‍🌾',
       color: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      selectedRing: 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/30'
+      selectedRing: 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-500'
     },
     {
       role: 'mandi_officer',
       title: 'APMC Officer',
       hindiTitle: 'मंडी अधिकारी',
       badge: 'Gate Scanner & Assay',
-      icon: '🏛️',
+      icon: '👩‍💼',
       color: 'bg-blue-50 text-blue-800 border-blue-200',
-      selectedRing: 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/30'
+      selectedRing: 'border-blue-600 bg-blue-50 ring-1 ring-blue-500'
     },
     {
       role: 'corporate_buyer',
@@ -103,7 +106,16 @@ export const AuthModal: React.FC = () => {
       badge: 'Bids & Escrow Trade',
       icon: '🏢',
       color: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-      selectedRing: 'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-500/30'
+      selectedRing: 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-500'
+    },
+    {
+      role: 'admin',
+      title: 'System Admin',
+      hindiTitle: 'प्रशासक',
+      badge: 'Data & System Control',
+      icon: '🛡️',
+      color: 'bg-slate-100 text-slate-800 border-slate-300',
+      selectedRing: 'border-slate-800 bg-slate-100 ring-1 ring-slate-800'
     }
   ];
 
@@ -113,13 +125,21 @@ export const AuthModal: React.FC = () => {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loginUser(selectedRole, `+91 ${loginIdentifier}`);
+    setError('');
+    if (authMethod === 'otp' && enteredOtp !== '1234') {
+      setError('Invalid OTP. Use 1234 for demo.');
+      return;
+    }
+    const { success, message } = useApp().loginWithPhone(`+91 ${loginIdentifier}`);
+    if (!success) setError(message);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
     if (!regName || !regPhone) {
-      alert('Please fill in required fields');
+      setError('Please fill in required fields');
       return;
     }
 
@@ -128,7 +148,7 @@ export const AuthModal: React.FC = () => {
       phone: `+91 ${regPhone}`,
       email: regEmail || `${regPhone}@kisantrack.in`,
       role: selectedRole,
-      avatar: selectedRole === 'farmer' ? '👨‍🌾' : selectedRole === 'mandi_officer' ? '👩‍💼' : '🏢',
+      avatar: selectedRole === 'farmer' ? '👨‍🌾' : selectedRole === 'mandi_officer' ? '👩‍💼' : selectedRole === 'corporate_buyer' ? '🏢' : '🛡️',
       state: regState,
       district: regDistrict,
       primaryMandi: regMandi,
@@ -160,35 +180,41 @@ export const AuthModal: React.FC = () => {
       } : {})
     };
 
-    registerUser(newProfile);
+    const { success, message } = registerUser(newProfile);
+    if (!success) {
+      setError(message);
+    } else {
+      setSuccess(message);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl overflow-hidden border border-slate-200 max-h-[92vh] flex flex-col">
         {/* Top Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-5 flex items-center justify-between shrink-0">
+        <div className="bg-slate-50 border-b border-slate-200 p-5 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold border border-emerald-400/30">
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl shadow-sm">
               🌾
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base">
-                  {authModalMode === 'login' ? 'KisanTrack Portal Access' : 'Create Stakeholder Account'}
+                <h3 className="font-bold text-base text-slate-900 tracking-tight">
+                  {authModalMode === 'login' ? 'KisanTrack Login' : 'Create Account'}
                 </h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-emerald-300 font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
                   SIH 2026
                 </span>
               </div>
-              <p className="text-xs text-slate-300">
-                Unified Authentication for Kissans, APMC Officers, and Corporate Buyers
+              <p className="text-xs text-slate-500 font-medium">
+                Unified Authentication for Farmers, APMC, and Buyers
               </p>
             </div>
           </div>
           <button
             onClick={() => setIsAuthModalOpen(false)}
-            className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+            className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+
           >
             <X className="w-5 h-5" />
           </button>
@@ -228,7 +254,7 @@ export const AuthModal: React.FC = () => {
               <span className="text-[10px] text-slate-400 font-semibold">Step 1 of 2</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {rolesList.map((r) => {
                 const isSelected = selectedRole === r.role;
                 return (
@@ -271,14 +297,14 @@ export const AuthModal: React.FC = () => {
               </span>
               <span className="text-[10px] text-slate-400">Pre-seeded Profiles</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickDemoLogin('farmer')}
                 className="p-2 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl text-left transition cursor-pointer text-slate-700"
               >
                 <span className="font-bold text-slate-900 block text-[11px]">🌾 Rameshwar (Kissan)</span>
-                <span className="text-[10px] text-slate-500">18.5 Acres • Indore Mandi</span>
+                <span className="text-[10px] text-slate-500">18.5 Acres • Indore</span>
               </button>
 
               <button
@@ -287,7 +313,7 @@ export const AuthModal: React.FC = () => {
                 className="p-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition cursor-pointer text-slate-700"
               >
                 <span className="font-bold text-slate-900 block text-[11px]">🏛️ Dr. Sunita (Officer)</span>
-                <span className="text-[10px] text-slate-500">Gate 3 Assay Inspector</span>
+                <span className="text-[10px] text-slate-500">Gate 3 Inspector</span>
               </button>
 
               <button
@@ -295,8 +321,17 @@ export const AuthModal: React.FC = () => {
                 onClick={() => handleQuickDemoLogin('corporate_buyer')}
                 className="p-2 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-left transition cursor-pointer text-slate-700"
               >
-                <span className="font-bold text-slate-900 block text-[11px]">🏢 Vikram (ITC Buyer)</span>
+                <span className="font-bold text-slate-900 block text-[11px]">🏢 Vikram (Buyer)</span>
                 <span className="text-[10px] text-slate-500">₹18.5L Escrow Reserve</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('admin')}
+                className="p-2 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-400 rounded-xl text-left transition cursor-pointer text-slate-700"
+              >
+                <span className="font-bold text-slate-900 block text-[11px]">🛡️ Rajesh (Admin)</span>
+                <span className="text-[10px] text-slate-500">Mandi Regulator HQ</span>
               </button>
             </div>
           </div>
