@@ -67,7 +67,7 @@ export const TokenPassCard: React.FC<TokenPassCardProps> = ({ booking }) => {
           {/* Authentic SVG QR Code Representation */}
           <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
             <div className="w-36 h-36 bg-white p-2 rounded-lg border-2 border-slate-300 shadow-xs flex flex-col items-center justify-center relative">
-              <QRCodeSVG value={`${window.location.origin}/?scan=${booking.tokenNumber}`} size={128} />
+              <QRCodeSVG value={`https://kisantrack.vercel.app/?scan=${booking.tokenNumber}`} size={128} />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="bg-white p-1 rounded-md shadow-xs border border-slate-200">
                   <span className="text-xs">🇮🇳</span>
