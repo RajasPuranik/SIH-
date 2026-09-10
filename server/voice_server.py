@@ -61,9 +61,9 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("voice_server")
 
 # "small" is a good accuracy/speed balance for Hindi/Marathi/English on CPU.
-# Use "base" on low-power machines, or "medium"/"large-v3" with a GPU for
-# noticeably better accuracy on noisy mandi-floor audio.
-WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "small")
+# Use "base" or "tiny" on low-power cloud VMs with 512MB RAM limits (like Render Free Tier).
+# Use "small" or "medium" locally or on a GPU.
+WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "tiny")
 WHISPER_DEVICE = os.environ.get("WHISPER_DEVICE", "cpu")
 WHISPER_COMPUTE = os.environ.get("WHISPER_COMPUTE_TYPE", "int8")
 
@@ -105,10 +105,9 @@ def get_whisper_model():
 
 @app.on_event("startup")
 async def warm_up():
-    # Load the model eagerly on startup so the user's FIRST sentence in the
-    # app isn't the one that eats a 10-20s cold-start delay.
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, get_whisper_model)
+    # Render's free tier has a 512MB RAM limit. Eagerly loading the model on startup
+    # can crash the server immediately. We will lazily load it on the first request.
+    pass
 
 
 @app.get("/health")
