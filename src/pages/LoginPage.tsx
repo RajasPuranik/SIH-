@@ -46,6 +46,29 @@ const ROLES = [
   },
 ];
 
+
+
+  /* ─── Shared outer wrapper ─── */
+  const PageShell: React.FC<{ children: React.ReactNode; narrow?: boolean }> = ({ children, narrow }) => (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className={`w-full ${narrow ? 'max-w-sm' : 'max-w-lg'}`}>
+        {/* Brand strip */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <span className="text-2xl">🌾</span>
+          <div>
+            <div className="text-base font-bold text-slate-900 tracking-tight leading-none">KisanTrack</div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider">SIH 2026 • किसान सेतु</div>
+          </div>
+        </div>
+        {children}
+        <p className="text-center text-[11px] text-slate-400 mt-5">
+          Ministry of Agriculture & Farmers Welfare • APMC Direct Procurement
+        </p>
+      </div>
+    </div>
+  );
+
+  
 export const LoginPage: React.FC = () => {
   const { loginUser, loginWithPhone, registerUser, isPhoneRegistered, openPhoneBot } = useApp();
   const [mode, setMode] = useState<'select' | 'login' | 'register'>('select');
@@ -95,29 +118,7 @@ export const LoginPage: React.FC = () => {
     } else {
       setSuccess(result.message);
     }
-  };
-
-  /* ─── Shared outer wrapper ─── */
-  const PageShell: React.FC<{ children: React.ReactNode; narrow?: boolean }> = ({ children, narrow }) => (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className={`w-full ${narrow ? 'max-w-sm' : 'max-w-lg'}`}>
-        {/* Brand strip */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <span className="text-2xl">🌾</span>
-          <div>
-            <div className="text-base font-bold text-slate-900 tracking-tight leading-none">KisanTrack</div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wider">SIH 2026 • किसान सेतु</div>
-          </div>
-        </div>
-        {children}
-        <p className="text-center text-[11px] text-slate-400 mt-5">
-          Ministry of Agriculture & Farmers Welfare • APMC Direct Procurement
-        </p>
-      </div>
-    </div>
-  );
-
-  /* ─────────── LOGIN SCREEN ─────────── */
+  };/* ─────────── LOGIN SCREEN ─────────── */
   if (mode === 'login') {
     return (
       <PageShell narrow>

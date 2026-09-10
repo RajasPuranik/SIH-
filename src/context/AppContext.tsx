@@ -448,7 +448,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  const getActiveBooking = () => bookings.find((b) => b.id === activeBookingId) || bookings[0];
+  const getActiveBooking = () => {
+    if (!currentUser) return undefined;
+    if (currentUser.role === 'mandi_officer' || currentUser.role === 'admin') {
+      return bookings.find((b) => b.id === activeBookingId) || bookings[0];
+    }
+    const myBookings = bookings.filter(b => b.farmerPhone === currentUser.phone);
+    if (myBookings.length === 0) return undefined;
+    return myBookings.find(b => b.id === activeBookingId) || myBookings[0];
+  };
 
   const createBooking = (
     newBookingData: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'>
