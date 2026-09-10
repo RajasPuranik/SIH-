@@ -1,4 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+const fs = require('fs');
+let content = fs.readFileSync('src/components/Map/GeoTrackingMap.tsx', 'utf8');
+
+// We will overwrite the entire file because it's a small file and we want to add a lot of logic for Shipments
+const newContent = `import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -27,7 +31,7 @@ export const GeoTrackingMap: React.FC = () => {
   const activeShipment = shipments.find(s => 
     (s.farmerId === currentUser?.id || s.buyerId === currentUser?.id || s.shipperId === currentUser?.id) && 
     (s.status === 'IN_TRANSIT' || s.status === 'PENDING_ACCEPTANCE')
-  ) || shipments.find(s => s.status === 'IN_TRANSIT' || s.status === 'PENDING_ACCEPTANCE');
+  );
 
   const [truckPos, setTruckPos] = useState<[number, number] | null>(null);
   const [progress, setProgress] = useState(0);
@@ -88,7 +92,7 @@ export const GeoTrackingMap: React.FC = () => {
           <div className="text-right">
             <div className="text-xs font-bold text-slate-600 mb-1">Transit Progress</div>
             <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500 transition-all duration-100" style={{ width: `${progress}%` }}></div>
+              <div className="h-full bg-orange-500 transition-all duration-100" style={{ width: \`\${progress}%\` }}></div>
             </div>
           </div>
         )}
@@ -141,3 +145,6 @@ export const GeoTrackingMap: React.FC = () => {
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/components/Map/GeoTrackingMap.tsx', newContent);

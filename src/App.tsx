@@ -14,6 +14,7 @@ import { AuthModal } from './components/Auth/AuthModal';
 import { UserProfileModal } from './components/Profile/UserProfileModal';
 import { PhoneBotModal } from './components/PhoneBot/PhoneBotModal';
 import { AdminView } from './components/Admin/AdminView';
+import { ShipperDashboard } from './components/PillarLogistics/ShipperDashboard';
 import { Footer } from './components/Footer';
 import { Building2, TrendingUp, PhoneCall, ShieldCheck } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext';
@@ -24,8 +25,19 @@ const Dashboard: React.FC = () => {
     userRole,
     currentUser,
     openPhoneBot,
+    setIsOfficerScannerOpen
   } = useApp();
   const { t } = useLanguage();
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const scanParam = params.get('scan');
+    if (scanParam && userRole === 'mandi_officer') {
+      setIsOfficerScannerOpen(true);
+      // Clean up URL without reload
+      window.history.replaceState({}, '', '/');
+    }
+  }, [userRole, setIsOfficerScannerOpen]);
   const [isBlueprintModalOpen, setIsBlueprintModalOpen] = useState(false);
 
   return (

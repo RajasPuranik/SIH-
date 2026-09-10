@@ -1,6 +1,6 @@
 export type Language = 'en' | 'hi' | 'pa' | 'mr';
 
-export type UserRole = 'farmer' | 'mandi_officer' | 'corporate_buyer' | 'admin';
+export type UserRole = 'farmer' | 'mandi_officer' | 'corporate_buyer' | 'admin' | 'shipper';
 
 export type ActivePillar = 'govt' | 'exchange';
 
@@ -165,4 +165,20 @@ export interface DistrictMandiRate {
   netRealizationPerQuintal: number;
   congestionLevel: 'Low' | 'Moderate' | 'High';
   estimatedWaitMinutes: number;
+}
+
+
+export interface Shipment {
+  id: string;
+  farmerId: string;
+  farmerName?: string;
+  buyerId?: string;
+  pickupLocation: { lat: number; lng: number; address: string };
+  dropoffLocation: { lat: number; lng: number; address: string };
+  status: 'PENDING_ACCEPTANCE' | 'ACCEPTED' | 'IN_TRANSIT' | 'DELIVERED';
+  shipperId?: string;
+  priceOffered: number;
+  cropName: string;
+  quantityQuintals: number;
+  distanceKm: number;
 }

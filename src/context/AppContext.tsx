@@ -4,6 +4,7 @@ import {
   UserRole,
   SlotBooking,
   OrderBookItem,
+  Shipment,
   SlotStatus,
   CropInfo,
   UserProfile,
@@ -21,6 +22,19 @@ export interface NotificationItem {
 }
 
 export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
+  shipper: {
+    id: 'usr-ship-01',
+    name: 'Raju Transports',
+    phone: '+91 99999 88888',
+    email: 'raju.transports@gmail.com',
+    role: 'shipper',
+    avatar: 'https://ui-avatars.com/api/?name=Raju+Transports&background=ea580c&color=fff',
+    state: 'Maharashtra',
+    district: 'Mumbai',
+    primaryMandi: 'APMC Mumbai',
+    createdAt: '2026-01-01',
+    aadhaarMasked: 'XXXX-XXXX-1111'
+  },
   farmer: {
     id: 'usr-kisan-01',
     name: 'Rameshwar Patidar (\u0930\u093e\u092e\u0947\u0936\u094d\u0935\u0930 \u092a\u093e\u091f\u0940\u0926\u093e\u0930)',
@@ -132,6 +146,8 @@ interface AppContextType {
 
   // Order Book & Pillar 2 state
   orderBook: OrderBookItem[];
+  shipments: Shipment[];
+  updateShipmentStatus: (id: string, status: Shipment['status']) => void;
   addOrderItem: (item: Omit<OrderBookItem, 'id' | 'timestamp'>) => void;
   executeTrade: (orderId: string, matchedQuantity: number) => { success: boolean; message: string };
 
@@ -171,6 +187,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [bookings, setBookings] = usePersistentState<SlotBooking[]>('kt_bookings', INITIAL_BOOKINGS);
   const [activeBookingId, setActiveBookingId] = useState<string>(INITIAL_BOOKINGS[0].id);
   const [orderBook, setOrderBook] = usePersistentState<OrderBookItem[]>('kt_orderBook', INITIAL_ORDER_BOOK);
+  const [shipments, setShipments] = usePersistentState<Shipment[]>('kt_shipments', [
+    {
+      id: 'ship-101',
+      farmerId: 'usr-kisan-01',
+      farmerName: 'Rameshwar Patidar',
+      buyerId: 'usr-corp-01',
+      pickupLocation: { lat: 22.7196, lng: 75.8577, address: 'Indore APMC Mandi' },
+      dropoffLocation: { lat: 19.0760, lng: 72.8777, address: 'ITC Warehouse, Mumbai' },
+      status: 'PENDING_ACCEPTANCE',
+      priceOffered: 14500,
+      cropName: 'Wheat (Sharbati)',
+      quantityQuintals: 65,
+      distanceKm: 580
+    }
+  ]);
+
+  const updateShipmentStatus = (id: string, status: Shipment['status']) => {
+    setShipments(prev => prev.map(s => (s.id === id ? { ...s, status, shipperId: currentUser?.id } : s)));
+  };
+
 
   // Auth State — null means not logged in; persisted so session survives refresh
   const [users, setUsers] = usePersistentState<UserProfile[]>('kt_users', []);
@@ -678,6 +714,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createBooking,
         updateBookingStatus,
         orderBook,
+        shipments,
+        updateShipmentStatus,
         addOrderItem,
         executeTrade,
         notifications,

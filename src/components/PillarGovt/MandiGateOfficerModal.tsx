@@ -20,7 +20,10 @@ export const MandiGateOfficerModal: React.FC = () => {
     playFeedbackTone 
   } = useApp();
 
-  const [selectedToken, setSelectedToken] = useState(bookings[0]?.tokenNumber || '');
+  const [selectedToken, setSelectedToken] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('scan') || bookings[0]?.tokenNumber || '';
+  });
   const [moisture, setMoisture] = useState('11.5');
   const [grade, setGrade] = useState<'Grade-A' | 'Grade-B'>('Grade-A');
   const [grossWeight, setGrossWeight] = useState('9200');
