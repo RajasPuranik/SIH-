@@ -188,7 +188,7 @@ export const processBotQuery = async (
   // Try AI engine first if configured
   if (genAI) {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
       const prompt = generateAiPrompt(rawQuery, language, crops, bookings, coords, weatherString);
       const result = await model.generateContent(prompt);
       const text = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();

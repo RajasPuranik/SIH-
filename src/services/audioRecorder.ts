@@ -108,6 +108,7 @@ export class AudioRecorder {
 
       const channelData = e.inputBuffer.getChannelData(0);
       const chunk = new Float32Array(channelData.length);
+      
       chunk.set(channelData);
 
       // Calculate Root Mean Square (RMS) volume
