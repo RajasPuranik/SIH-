@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+
+const content = `import React, { useState, useEffect } from 'react';
 import { 
   X, 
   ShieldCheck, 
@@ -28,7 +30,6 @@ export const MandiGateOfficerModal: React.FC = () => {
     const token = params.get('scan');
     if (token) {
       handleTokenScanned(token);
-      window.history.replaceState({}, '', '/');
     }
   }, []);
 
@@ -172,3 +173,6 @@ export const MandiGateOfficerModal: React.FC = () => {
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/components/PillarGovt/MandiGateOfficerModal.tsx', content);

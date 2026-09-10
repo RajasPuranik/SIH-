@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
     if (scanParam && userRole === 'mandi_officer') {
       setIsOfficerScannerOpen(true);
       // Clean up URL without reload
-      window.history.replaceState({}, '', '/');
+      // let modal read it
     }
   }, [userRole, setIsOfficerScannerOpen]);
   const [isBlueprintModalOpen, setIsBlueprintModalOpen] = useState(false);
