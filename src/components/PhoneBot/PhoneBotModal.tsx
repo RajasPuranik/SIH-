@@ -130,7 +130,7 @@ export const PhoneBotModal: React.FC = () => {
     setCallState('connected');
     playFeedbackTone('success');
 
-    const farmerFirstName = currentUser?.name?.split(' ')[0] || 'à¤•à¤¿à¤¸à¤¾à¤¨ à¤­à¤¾à¤ˆ';
+    const farmerFirstName = currentUser?.name?.split(' ')[0] || '�•िसान भा�ˆ';
     const activeBooking = bookings[0];
 
     const greeting = getInitialGreeting(
@@ -145,9 +145,9 @@ export const PhoneBotModal: React.FC = () => {
       text: greeting.displayText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       quickActions: [
-        { label: 'ðŸŒ¾ à¤­à¤¾à¤µ / Rates', action: 'à¤­à¤¾à¤µ' },
-        { label: 'ðŸ“‹ à¤Ÿà¥‹à¤•à¤¨ / Token', action: 'à¤Ÿà¥‹à¤•à¤¨ à¤¸à¥à¤¥à¤¿à¤¤à¤¿' },
-        { label: 'ðŸ›ï¸ à¤®à¤‚à¤¡à¥€ à¤­à¥€à¤¡à¤¼ / Queue', action: 'à¤®à¤‚à¤¡à¥€ à¤­à¥€à¤¡à¤¼' },
+        { label: '�ŸŒ� भाव / Rates', action: 'भाव' },
+        { label: '�Ÿ“‹ �Ÿ�‹�•न / Token', action: '�Ÿ�‹�•न स्थिति' },
+        { label: '�Ÿ�›️ म�‚ड�€ भ�€ड़ / Queue', action: 'म�‚ड�€ भ�€ड़' },
       ],
     };
 
@@ -160,7 +160,7 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // â”€â”€â”€ NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) â”€â”€â”€
+  // �”€�”€�”€ NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) �”€�”€�”€
   const speakText = (text: string, currentLang: SupportedBotLang = botLang) => {
     if (!isSpeakerOn) {
       if (!isMuted && callStateRef.current === 'connected') {
@@ -282,7 +282,7 @@ export const PhoneBotModal: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  // â”€â”€â”€ INSTANT BOT INTERRUPTION â”€â”€â”€
+  // �”€�”€�”€ INSTANT BOT INTERRUPTION �”€�”€�”€
   const interruptBot = () => {
     if (audioElementRef.current) {
       try {
@@ -309,7 +309,7 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // â”€â”€â”€ ROBUST FULL-DUPLEX CONTINUOUS SPEECH-TO-TEXT â”€â”€â”€
+  // �”€�”€�”€ ROBUST FULL-DUPLEX CONTINUOUS SPEECH-TO-TEXT �”€�”€�”€
   const startListening = async (lang: SupportedBotLang = botLang) => {
     if (isStartingRef.current) return;
     if (audioRecorderRef.current) {
@@ -370,7 +370,7 @@ export const PhoneBotModal: React.FC = () => {
       isStartingRef.current = false;
       setIsListening(false);
       if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        setMicStatusMsg('à¤®à¤¾à¤‡à¤• à¤…à¤¨à¥à¤®à¤¤à¤¿ à¤…à¤¸à¥à¤µà¥€à¤•à¥ƒà¤¤ (Microphone blocked). à¤¬à¥à¤°à¤¾à¤‰à¤œà¤¼à¤° à¤¸à¥‡à¤Ÿà¤¿à¤‚à¤—à¥à¤¸ à¤®à¥‡à¤‚ à¤…à¤¨à¥à¤®à¤¤à¤¿ à¤¦à¥‡à¤‚.');
+        setMicStatusMsg('मा�‡�• �…नुमति �…स्व�€�•�ƒत (Microphone blocked). ब्रा�‰�œ़र स�‡�Ÿि�‚�—्स म�‡�‚ �…नुमति द�‡�‚.');
       }
     }
   };
@@ -499,7 +499,7 @@ export const PhoneBotModal: React.FC = () => {
     playFeedbackTone('ping');
     stopListening();
     if (callState === 'connected') {
-      const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || 'à¤•à¤¿à¤¸à¤¾à¤¨ à¤­à¤¾à¤ˆ');
+      const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || '�•िसान भा�ˆ');
       setMessages((prev) => [
         ...prev,
         {
@@ -507,8 +507,8 @@ export const PhoneBotModal: React.FC = () => {
           text: greeting.displayText,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           quickActions: [
-            { label: 'ðŸŒ¾ à¤­à¤¾à¤µ / Rates', action: 'à¤­à¤¾à¤µ' },
-            { label: 'ðŸ“‹ à¤Ÿà¥‹à¤•à¤¨ / Token', action: 'à¤Ÿà¥‹à¤•à¤¨ à¤¸à¥à¤¥à¤¿à¤¤à¤¿' },
+            { label: '�ŸŒ� भाव / Rates', action: 'भाव' },
+            { label: '�Ÿ“‹ �Ÿ�‹�•न / Token', action: '�Ÿ�‹�•न स्थिति' },
           ],
         },
       ]);
@@ -519,11 +519,11 @@ export const PhoneBotModal: React.FC = () => {
   const handleKeypadPress = (digit: string) => {
     playFeedbackTone('ping');
     const labelMap: Record<string, string> = {
-      '1': 'à¤Ÿà¥‹à¤•à¤¨ à¤¸à¥à¤¥à¤¿à¤¤à¤¿ (1)',
-      '2': 'à¤¸à¤°à¤•à¤¾à¤°à¥€ MSP à¤­à¤¾à¤µ (2)',
-      '3': 'à¤®à¤‚à¤¡à¥€ à¤­à¥€à¤¡à¤¼ à¤µ à¤ªà¥à¤°à¤¤à¥€à¤•à¥à¤·à¤¾ (3)',
-      '4': 'à¤¨à¤¯à¤¾ à¤¸à¥à¤²à¥‰à¤Ÿ à¤¬à¥à¤• à¤•à¤°à¥‡à¤‚ (4)',
-      '9': 'à¤®à¤‚à¤¡à¥€ à¤…à¤§à¤¿à¤•à¤¾à¤°à¥€ à¤¸à¥‡ à¤¬à¤¾à¤¤ (9)',
+      '1': '�Ÿ�‹�•न स्थिति (1)',
+      '2': 'सर�•ार�€ MSP भाव (2)',
+      '3': 'म�‚ड�€ भ�€ड़ व प्रत�€�•्षा (3)',
+      '4': 'नया स्ल�‰�Ÿ बु�• �•र�‡�‚ (4)',
+      '9': 'म�‚ड�€ �…धि�•ार�€ स�‡ बात (9)',
     };
     const query = labelMap[digit] || digit;
     handleUserUtterance(query);
@@ -575,11 +575,11 @@ export const PhoneBotModal: React.FC = () => {
           <div className="w-12 h-3 bg-slate-800 rounded-full border border-slate-700" />
           <div className="flex items-center gap-1 font-mono text-[10px] text-emerald-400">
             <span>Neural 4G</span>
-            <span>ðŸ“¶</span>
+            <span>�Ÿ“�</span>
           </div>
         </div>
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ MULTILINGUAL LANGUAGE BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ MULTILINGUAL LANGUAGE BAR �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
         <div className="bg-slate-950/90 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between gap-1 overflow-x-auto shrink-0">
           <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0 mr-1">
             <Globe className="w-3 h-3 text-emerald-400" />
@@ -602,12 +602,12 @@ export const PhoneBotModal: React.FC = () => {
           </div>
         </div>
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STATE: INCOMING CALL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: INCOMING CALL �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
         {callState === 'incoming' && (
           <div className="flex-1 flex flex-col items-center justify-between p-6 text-center">
             <div className="pt-6 space-y-3">
               <div className="w-24 h-24 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-5xl shadow-lg animate-pulse">
-                ðŸ›ï¸
+                �Ÿ�›️
               </div>
               <div>
                 <h3 className="text-xl font-extrabold text-white">APMC Mandi Helpdesk</h3>
@@ -621,7 +621,7 @@ export const PhoneBotModal: React.FC = () => {
             </div>
 
             <div className="bg-slate-800/80 rounded-2xl p-3 border border-slate-700/60 max-w-xs text-xs text-slate-300 leading-relaxed">
-              ðŸ”” <strong className="text-white">Live Voice Alert:</strong> Slot status verification &amp; priority entry update for your vehicle.
+              �Ÿ”” <strong className="text-white">Live Voice Alert:</strong> Slot status verification &amp; priority entry update for your vehicle.
             </div>
 
             {/* Accept / Decline Buttons */}
@@ -645,16 +645,16 @@ export const PhoneBotModal: React.FC = () => {
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STATE: DIALING / CALLING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: DIALING / CALLING �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
         {callState === 'calling' && (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
             <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-4xl animate-pulse">
-              ðŸŒ¾
+              �ŸŒ�
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">à¤•à¤¿à¤¸à¤¾à¤¨ à¤µà¥‰à¤‡à¤¸ à¤¬à¥‰à¤Ÿ</h3>
+              <h3 className="text-lg font-bold text-white">�•िसान व�‰�‡स ब�‰�Ÿ</h3>
               <p className="text-xs text-slate-400">1800-180-1551 (Toll-Free)</p>
-              <p className="text-xs text-emerald-400 mt-2 font-medium animate-pulse">à¤•à¥‰à¤² à¤®à¤¿à¤²à¤¾à¤ˆ à¤œà¤¾ à¤°à¤¹à¥€ à¤¹à¥ˆ (Connecting...)</p>
+              <p className="text-xs text-emerald-400 mt-2 font-medium animate-pulse">�•�‰ल मिला�ˆ �œा रह�€ ह�ˆ (Connecting...)</p>
             </div>
             <button
               onClick={endCall}
@@ -665,23 +665,23 @@ export const PhoneBotModal: React.FC = () => {
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STATE: CONNECTED CALL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: CONNECTED CALL �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
         {callState === 'connected' && (
           <div className="flex-1 flex flex-col justify-between overflow-hidden">
             {/* Call Header */}
             <div className="p-3 bg-slate-800/60 border-b border-slate-700/60 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg font-bold">
-                  ðŸŒ¾
+                  �ŸŒ�
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-white">à¤•à¤¿à¤¸à¤¾à¤¨ à¤«à¥‹à¤¨ à¤¬à¥‰à¤Ÿ</span>
+                    <span className="font-bold text-xs text-white">�•िसान फ�‹न ब�‰�Ÿ</span>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono text-emerald-400 font-semibold">{formatTimer(callDuration)}</span>
-                    <span className="text-[9px] text-slate-400 font-mono">â€¢ {activeLangConfig.voice.split('-')[1]}</span>
+                    <span className="text-[9px] text-slate-400 font-mono">�€� {activeLangConfig.voice.split('-')[1]}</span>
                   </div>
                 </div>
               </div>
@@ -713,11 +713,11 @@ export const PhoneBotModal: React.FC = () => {
                 ))}
                 <span className="text-[9px] font-mono font-bold">
                   {isBotSpeaking ? (
-                    <span className="text-amber-300">à¤¬à¥‹à¤² à¤°à¤¹à¤¾ à¤¹à¥ˆ</span>
+                    <span className="text-amber-300">ब�‹ल रहा ह�ˆ</span>
                   ) : isListening ? (
-                    <span className="text-emerald-300">à¤¸à¥à¤¨ à¤°à¤¹à¥‡ à¤¹à¥ˆà¤‚</span>
+                    <span className="text-emerald-300">सुन रह�‡ ह�ˆ�‚</span>
                   ) : (
-                    <span className="text-slate-400">à¤¤à¥ˆà¤¯à¤¾à¤°</span>
+                    <span className="text-slate-400">त�ˆयार</span>
                   )}
                 </span>
               </div>
@@ -759,15 +759,15 @@ export const PhoneBotModal: React.FC = () => {
               <div className="pt-2 border-t border-slate-800/80">
                 <div className="text-[9px] text-slate-400 font-bold mb-1.5 flex items-center gap-1">
                   <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-                  <span>à¤¤à¥à¤µà¤°à¤¿à¤¤ à¤ªà¥à¤°à¤¶à¥à¤¨ (Quick Questions):</span>
+                  <span>त्वरित प्रश्न (Quick Questions):</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    { label: 'ðŸŒ¾ à¤†à¤œ à¤•à¤¾ à¤­à¤¾à¤µ', q: 'à¤†à¤œ à¤•à¤¾ à¤®à¤‚à¤¡à¥€ à¤­à¤¾à¤µ à¤•à¥à¤¯à¤¾ à¤¹à¥ˆ' },
-                    { label: 'ðŸ“‹ à¤®à¥‡à¤°à¤¾ à¤Ÿà¥‹à¤•à¤¨', q: 'à¤®à¥‡à¤°à¤¾ à¤Ÿà¥‹à¤•à¤¨ à¤¨à¤‚à¤¬à¤° à¤”à¤° à¤¸à¥à¤¥à¤¿à¤¤à¤¿ à¤¬à¤¤à¤¾à¤à¤‚' },
-                    { label: 'ðŸ›ï¸ à¤®à¤‚à¤¡à¥€ à¤­à¥€à¤¡à¤¼', q: 'à¤®à¤‚à¤¡à¥€ à¤®à¥‡à¤‚ à¤…à¤­à¥€ à¤­à¥€à¤¡à¤¼ à¤”à¤° à¤•à¤¤à¤¾à¤° à¤•à¤¿à¤¤à¤¨à¥€ à¤¹à¥ˆ' },
-                    { label: 'ðŸŒ¤ï¸ à¤®à¥Œà¤¸à¤®', q: 'à¤†à¤œ à¤•à¤¾ à¤®à¥Œà¤¸à¤® à¤•à¥ˆà¤¸à¤¾ à¤°à¤¹à¥‡à¤—à¤¾' },
-                    { label: 'ðŸ“¦ à¤¨à¤¯à¤¾ à¤Ÿà¥‹à¤•à¤¨', q: 'à¤¨à¤¯à¤¾ à¤¸à¥à¤²à¥‰à¤Ÿ à¤¬à¥à¤• à¤•à¤°à¤¨à¤¾ à¤¹à¥ˆ' },
+                    { label: '�ŸŒ� �†�œ �•ा भाव', q: '�†�œ �•ा म�‚ड�€ भाव �•्या ह�ˆ' },
+                    { label: '�Ÿ“‹ म�‡रा �Ÿ�‹�•न', q: 'म�‡रा �Ÿ�‹�•न न�‚बर �”र स्थिति बताए�‚' },
+                    { label: '�Ÿ�›️ म�‚ड�€ भ�€ड़', q: 'म�‚ड�€ म�‡�‚ �…भ�€ भ�€ड़ �”र �•तार �•ितन�€ ह�ˆ' },
+                    { label: '�ŸŒ�️ म�Œसम', q: '�†�œ �•ा म�Œसम �•�ˆसा रह�‡�—ा' },
+                    { label: '�Ÿ“� नया �Ÿ�‹�•न', q: 'नया स्ल�‰�Ÿ बु�• �•रना ह�ˆ' },
                   ].map((chip, idx) => (
                     <button
                       key={idx}
@@ -789,17 +789,17 @@ export const PhoneBotModal: React.FC = () => {
               )}
             </div>
 
-            {/* â”€â”€â”€ BOT SPEAKING PILL (Clean & Informational, NO Interrupt button) â”€â”€â”€ */}
+            {/* �”€�”€�”€ BOT SPEAKING PILL (Clean & Informational, NO Interrupt button) �”€�”€�”€ */}
             {isBotSpeaking && (
               <div className="mx-3 my-1 p-2 bg-slate-800/90 text-emerald-300 rounded-2xl border border-slate-700 shadow-md flex items-center justify-center gap-2 shrink-0 animate-fade-in">
                 <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
                 <span className="text-[11px] font-semibold text-slate-200">
-                  à¤¬à¥‰à¤Ÿ à¤¬à¥‹à¤² à¤°à¤¹à¤¾ à¤¹à¥ˆ... ({activeLangConfig.nativeName})
+                  ब�‰�Ÿ ब�‹ल रहा ह�ˆ... ({activeLangConfig.nativeName})
                 </span>
               </div>
             )}
 
-            {/* â”€â”€â”€ LIVE MIC LISTENING BANNER (WITH REAL-TIME EQUALIZER) â”€â”€â”€ */}
+            {/* �”€�”€�”€ LIVE MIC LISTENING BANNER (WITH REAL-TIME EQUALIZER) �”€�”€�”€ */}
             {isListening && !isBotSpeaking && (
               <div className="mx-3 my-1 p-2.5 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 border border-emerald-500/60 rounded-2xl shadow-lg flex items-center justify-between gap-2 shrink-0 animate-fade-in">
                 <div className="flex items-center gap-2.5">
@@ -809,10 +809,10 @@ export const PhoneBotModal: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-[11px] font-bold text-emerald-200">
-                      {isUserSpeaking ? 'ðŸŽ™ï¸ à¤†à¤ªà¤•à¥€ à¤†à¤µà¤¾à¤œà¤¼ à¤† à¤°à¤¹à¥€ à¤¹à¥ˆ...' : 'ðŸŽ™ï¸ à¤¬à¥‹à¤²à¤¿à¤, à¤¹à¤® à¤¸à¥à¤¨ à¤°à¤¹à¥‡ à¤¹à¥ˆà¤‚...'}
+                      {isUserSpeaking ? '�ŸŽ™️ �†प�•�€ �†वा�œ़ �† रह�€ ह�ˆ...' : '�ŸŽ™️ ब�‹लिए, हम सुन रह�‡ ह�ˆ�‚...'}
                     </div>
                     <div className="text-[9px] text-emerald-400 font-medium">
-                      ({activeLangConfig.nativeName} â€” à¤¬à¥‹à¤²à¤•à¤° 1-2 à¤¸à¥‡à¤•à¤‚à¤¡ à¤°à¥à¤•à¥‡à¤‚)
+                      ({activeLangConfig.nativeName} �€” ब�‹ल�•र 1-2 स�‡�•�‚ड रु�•�‡�‚)
                     </div>
                   </div>
                 </div>
@@ -833,17 +833,17 @@ export const PhoneBotModal: React.FC = () => {
               </div>
             )}
 
-            {/* â”€â”€â”€ PROCESSING VOICE INDICATOR â”€â”€â”€ */}
+            {/* �”€�”€�”€ PROCESSING VOICE INDICATOR �”€�”€�”€ */}
             {isProcessingAudio && (
               <div className="mx-3 my-1 p-2 bg-slate-800/90 text-amber-300 rounded-2xl border border-amber-500/40 shadow-md flex items-center justify-center gap-2 shrink-0 animate-pulse">
                 <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
                 <span className="text-[11px] font-bold text-amber-200">
-                  à¤†à¤ªà¤•à¥€ à¤¬à¤¾à¤¤ à¤¸à¤®à¤ à¤°à¤¹à¥‡ à¤¹à¥ˆà¤‚... (Processing voice...)
+                  �†प�•�€ बात समझ रह�‡ ह�ˆ�‚... (Processing voice...)
                 </span>
               </div>
             )}
 
-            {/* â”€â”€â”€ LIVE SPEECH TRANSCRIPT PREVIEW â”€â”€â”€ */}
+            {/* �”€�”€�”€ LIVE SPEECH TRANSCRIPT PREVIEW �”€�”€�”€ */}
             {currentSpeechTranscript && (
               <div className="mx-3 my-1 p-2 bg-emerald-800/90 text-white rounded-xl text-xs font-semibold italic text-center animate-fade-in shrink-0 border border-emerald-400/60 shadow-md">
                 "{currentSpeechTranscript}"
@@ -882,7 +882,7 @@ export const PhoneBotModal: React.FC = () => {
                     setTextInput('');
                   }
                 }}
-                placeholder="à¤¬à¥‹à¤²à¥‡à¤‚ à¤¯à¤¾ à¤²à¤¿à¤–à¥‡à¤‚ (Speak or type)..."
+                placeholder="ब�‹ल�‡�‚ या लि�–�‡�‚ (Speak or type)..."
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               />
               <button
@@ -908,10 +908,10 @@ export const PhoneBotModal: React.FC = () => {
                     ? 'bg-amber-600 text-white animate-pulse ring-2 ring-amber-400'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 }`}
-                title={isMuted ? 'à¤®à¤¾à¤‡à¤• à¤…à¤¨à¤®à¥à¤¯à¥‚à¤Ÿ à¤•à¤°à¥‡à¤‚ (Unmute)' : 'à¤®à¤¾à¤‡à¤• à¤®à¥à¤¯à¥‚à¤Ÿ à¤•à¤°à¥‡à¤‚ (Mute)'}
+                title={isMuted ? 'मा�‡�• �…नम्य�‚�Ÿ �•र�‡�‚ (Unmute)' : 'मा�‡�• म्य�‚�Ÿ �•र�‡�‚ (Mute)'}
               >
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                <span className="text-[8px] font-bold mt-0.5">{isMuted ? 'à¤®à¥à¤¯à¥‚à¤Ÿ' : 'à¤®à¤¾à¤‡à¤• à¤šà¤¾à¤²à¥‚'}</span>
+                <span className="text-[8px] font-bold mt-0.5">{isMuted ? 'म्य�‚�Ÿ' : 'मा�‡�• �šाल�‚'}</span>
               </button>
 
               {/* Keypad toggle */}
@@ -920,7 +920,7 @@ export const PhoneBotModal: React.FC = () => {
                 className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
                   showKeypad ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                 }`}
-                title="DTMF à¤•à¥€à¤ªà¥ˆà¤¡ (Keypad)"
+                title="DTMF �•�€प�ˆड (Keypad)"
               >
                 <Grid className="w-4 h-4" />
                 <span className="text-[8px] mt-0.5">Keypad</span>
@@ -932,32 +932,32 @@ export const PhoneBotModal: React.FC = () => {
                 className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
                   isSpeakerOn ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-amber-950 text-amber-400 border-amber-800'
                 }`}
-                title={isSpeakerOn ? 'à¤¸à¥à¤ªà¥€à¤•à¤° à¤šà¤¾à¤²à¥‚' : 'à¤¸à¥à¤ªà¥€à¤•à¤° à¤¬à¤‚à¤¦'}
+                title={isSpeakerOn ? 'स्प�€�•र �šाल�‚' : 'स्प�€�•र ब�‚द'}
               >
                 {isSpeakerOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'à¤¸à¥à¤ªà¥€à¤•à¤°' : 'à¤¶à¤¾à¤‚à¤¤'}</span>
+                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'स्प�€�•र' : 'शा�‚त'}</span>
               </button>
 
               {/* End Call Button */}
               <button
                 onClick={endCall}
                 className="w-12 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white flex flex-col items-center justify-center transition cursor-pointer shadow-lg shadow-red-600/30"
-                title="à¤•à¥‰à¤² à¤•à¤¾à¤Ÿà¥‡à¤‚ (End Call)"
+                title="�•�‰ल �•ा�Ÿ�‡�‚ (End Call)"
               >
                 <PhoneOff className="w-5 h-5" />
-                <span className="text-[8px] font-bold mt-0.5">à¤•à¥‰à¤² à¤•à¤¾à¤Ÿà¥‡à¤‚</span>
+                <span className="text-[8px] font-bold mt-0.5">�•�‰ल �•ा�Ÿ�‡�‚</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STATE: ENDED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: ENDED �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
         {callState === 'ended' && (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2">
             <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-3xl">
-              ðŸ“ž
+              �Ÿ“ž
             </div>
-            <h3 className="text-base font-bold text-white">à¤•à¥‰à¤² à¤¸à¤®à¤¾à¤ªà¥à¤¤ (Call Ended)</h3>
+            <h3 className="text-base font-bold text-white">�•�‰ल समाप्त (Call Ended)</h3>
             <p className="text-xs text-slate-400">Duration: {formatTimer(callDuration)}</p>
           </div>
         )}
