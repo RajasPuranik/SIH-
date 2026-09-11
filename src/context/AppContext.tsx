@@ -141,8 +141,8 @@ interface AppContextType {
   activeBookingId: string;
   setActiveBookingId: (id: string) => void;
   getActiveBooking: () => SlotBooking | undefined;
-  createBooking: (newBooking: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'> & { tokenNumber?: string }) => SlotBooking;
-  updateBookingStatus: (id: string, newStatus: SlotStatus, remarks?: string, officerName?: string) => void;
+  createBooking: (newBooking: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'> & { tokenNumber?: string }, skipBroadcast?: boolean) => SlotBooking;
+  updateBookingStatus: (id: string, newStatus: SlotStatus, remarks?: string, officerName?: string, skipBroadcast?: boolean) => void;
 
   // Order Book & Pillar 2 state
   orderBook: OrderBookItem[];
@@ -561,7 +561,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     id: string,
     newStatus: SlotStatus,
     remarks: string = '',
-    officerName?: string
+    officerName?: string,
+    skipBroadcast: boolean = false
   ) => {
     setBookings((prev) =>
       prev.map((booking) => {
@@ -625,6 +626,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: `Token ${booking.tokenNumber} Updated`,
         message: `Your token has successfully advanced to the '${stageName}' stage. ${remarks}`
       });
+    }
+
+    if (!skipBroadcast) {
+      fetch('https://ntfy.sh/kisantrack-sih-2026-demo-sync', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'UPDATE_STATUS', id, newStatus, remarks, officerName })
+      }).catch(e => console.warn('ntfy err', e));
     }
   };
 
