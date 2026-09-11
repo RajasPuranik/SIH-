@@ -65,6 +65,7 @@ export const PhoneBotModal: React.FC = () => {
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
   const [micVolume, setMicVolume] = useState(0);
   const [currentSpeechTranscript, setCurrentSpeechTranscript] = useState('');
+  const [vrnInput, setVrnInput] = useState('');
   const [micStatusMsg, setMicStatusMsg] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
 
@@ -766,6 +767,32 @@ export const PhoneBotModal: React.FC = () => {
           <div className="w-full flex flex-col bg-slate-900/80 backdrop-blur-lg border-t border-slate-800/50 pb-8 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
             
             {/* Quick Actions (only show if keyboard isn't open and bot gave some) */}
+            {bookingContextRef.current?.step === 'vehicleNumber' && (
+              <div className="px-4 pb-2 pt-2 w-full max-w-xs mx-auto animate-fade-in-up z-30 relative">
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (vrnInput.trim()) {
+                      handleUserUtterance(vrnInput.trim());
+                      setVrnInput('');
+                    }
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={vrnInput}
+                    onChange={(e) => setVrnInput(e.target.value.toUpperCase())}
+                    placeholder="Type VRN..."
+                    className="flex-1 bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-2 text-emerald-300 text-sm font-bold outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 uppercase tracking-widest placeholder:text-slate-500 placeholder:font-normal"
+                  />
+                  <button type="submit" disabled={!vrnInput.trim()} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white p-2 rounded-xl transition shadow-lg">
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
+            )}
+
             {!showKeypad && lastMessage?.quickActions && (
               <div className="flex gap-2 overflow-x-auto p-4 no-scrollbar">
                 {lastMessage.quickActions.map((action, idx) => (
