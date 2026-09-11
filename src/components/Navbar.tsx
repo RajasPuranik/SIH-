@@ -116,10 +116,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onBlueprintClick }) => {
             <button
               onClick={() => openPhoneBot('inbound')}
               className="flex items-center gap-1.5 px-2.5 py-1.5 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs font-semibold transition cursor-pointer"
-              title="Track AI — 1800-180-1551"
+              title="1551 Bot — 1800-180-1551"
             >
               <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Track AI</span>
+              <span className="hidden sm:inline">1551 Bot</span>
             </button>
 
 

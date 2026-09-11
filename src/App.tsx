@@ -9,7 +9,6 @@ import { CropStockExchangeView } from './components/PillarMarket/CropStockExchan
 import { MandiCongestionHeatmap } from './components/MandiCongestionHeatmap';
 import { MandiGateOfficerModal } from './components/PillarGovt/MandiGateOfficerModal';
 import { AudioAssistantModal } from './components/AudioAssistantModal';
-import { IVRModal } from './components/IVRModal';
 import { BlueprintComparisonModal } from './components/BlueprintComparisonModal';
 import { AuthModal } from './components/Auth/AuthModal';
 import { UserProfileModal } from './components/Profile/UserProfileModal';
@@ -140,8 +139,7 @@ const Dashboard: React.FC = () => {
       {/* Modals */}
             <MandiGateOfficerModal />
       <AudioAssistantModal />
-      {isIVRDialpadOpen && <IVRModal isOpen={isIVRDialpadOpen} onClose={() => setIsIVRDialpadOpen(false)} />}
-      <AuthModal />
+            <AuthModal />
       <UserProfileModal />
       <BlueprintComparisonModal isOpen={isBlueprintModalOpen} onClose={() => setIsBlueprintModalOpen(false)} />
     </div>
