@@ -39,6 +39,7 @@ export const PhoneBotModal: React.FC = () => {
     crops,
     bookings,
     currentUser,
+    createBooking,
     playFeedbackTone,
     addNotification,
   } = useApp();
@@ -472,6 +473,31 @@ export const PhoneBotModal: React.FC = () => {
 
     if (botRes.newBookingContext !== undefined) {
       bookingContextRef.current = botRes.newBookingContext;
+    }
+
+    if (botRes.generatedToken && !botRes.generatedToken.alreadyBooked) {
+      botRes.generatedToken.alreadyBooked = true;
+      
+      const matchedCrop = crops.find(c => c.name.toLowerCase().includes(botRes.generatedToken.crop.toLowerCase()) || botRes.generatedToken.crop.toLowerCase().includes(c.id));
+      const finalCropId = matchedCrop ? matchedCrop.id : 'wheat';
+      const finalCropName = matchedCrop ? matchedCrop.name : botRes.generatedToken.crop;
+
+      const newBooking = createBooking({
+        farmerName: currentUser?.name || 'Kisan',
+        farmerPhone: currentUser?.phone || '9999999999',
+        aadhaarMasked: currentUser?.aadhaarMasked || 'XXXX-XXXX-1234',
+        state: currentUser?.state || 'Madhya Pradesh',
+        district: currentUser?.district || 'Indore',
+        mandiName: 'Indore Central Mandi',
+        cropId: finalCropId,
+        cropName: finalCropName,
+        estimatedQuantityQuintals: parseInt(botRes.generatedToken.quantity) || 50,
+        vehicleType: botRes.generatedToken.vehicle.toLowerCase().includes('truck') ? 'Truck' : 'Tractor Trolley',
+        vehicleNumber: 'MP-09-XX-0000',
+        bookingDate: new Date().toISOString().split('T')[0],
+        scheduledTimeSlot: botRes.generatedToken.time,
+      });
+      botRes.generatedToken.tokenNumber = newBooking.tokenNumber;
     }
 
     // Speak and display immediately with zero delay
