@@ -493,7 +493,7 @@ export const PhoneBotModal: React.FC = () => {
         cropName: finalCropName,
         estimatedQuantityQuintals: parseInt(botRes.generatedToken.quantity) || 50,
         vehicleType: botRes.generatedToken.vehicle.toLowerCase().includes('truck') ? 'Truck' : 'Tractor Trolley',
-        vehicleNumber: 'MP-09-XX-0000',
+        vehicleNumber: botRes.generatedToken.vehicleNumber || 'MP-09-XX-0000',
         bookingDate: new Date().toISOString().split('T')[0],
         scheduledTimeSlot: botRes.generatedToken.time,
       });
@@ -692,7 +692,7 @@ export const PhoneBotModal: React.FC = () => {
                       <p><strong>Token:</strong> {lastMessage.generatedToken.tokenNumber}</p>
                       <p><strong>Crop:</strong> {lastMessage.generatedToken.crop}</p>
                       <p><strong>Qtl:</strong> {lastMessage.generatedToken.quantity}</p>
-                      <p><strong>Vehicle:</strong> {lastMessage.generatedToken.vehicle}</p>
+                      <p><strong>Vehicle:</strong> {lastMessage.generatedToken.vehicle} ({lastMessage.generatedToken.vehicleNumber})</p>
                       <p><strong>Time:</strong> {lastMessage.generatedToken.time}</p>
                     </div>
                   </div>
