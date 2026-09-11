@@ -709,7 +709,33 @@ export const PhoneBotModal: React.FC = () => {
                   style={{ transform: `scale(${orbScale * 1.2})` }}
                 />
                 
-                {/* Core Sphere */}
+                                  {/* Floating Quick Actions Bubbles */}
+                  {!showKeypad && lastMessage?.quickActions && (
+                    <div className="absolute inset-0 pointer-events-none z-50">
+                      {lastMessage.quickActions.map((action, idx) => {
+                        const total = lastMessage.quickActions!.length;
+                        const angle = (-Math.PI / 2) + (idx * (2 * Math.PI) / total);
+                        const radius = 135; 
+                        const x = Math.cos(angle) * radius;
+                        const y = Math.sin(angle) * radius;
+
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleUserUtterance(action.action)}
+                            className="absolute top-1/2 left-1/2 shrink-0 px-3 py-1.5 bg-slate-800/95 hover:bg-emerald-900/80 text-emerald-300 text-xs font-bold rounded-full border border-emerald-500/50 transition-all pointer-events-auto shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:scale-110 hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] whitespace-nowrap"
+                            style={{
+                              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
+                            }}
+                          >
+                            {action.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Core Sphere */}
                 <div 
                   className={`relative w-36 h-36 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500 ${
                     isProcessingAudio ? 'bg-gradient-to-tr from-purple-700 to-pink-500 animate-pulse' :
@@ -719,9 +745,7 @@ export const PhoneBotModal: React.FC = () => {
                   }`}
                   style={{ transform: `scale(${orbScale})` }}
                 >
-                  <div className="absolute inset-0 bg-white/10 blur-xl mix-blend-overlay rounded-full" />
-                  
-                  {/* Subtle inner animated ring for speaking */}
+                  <div className="absolute inset-0 bg-white/10 blur-xl mix-blend-overlay rounded-full" />{/* Subtle inner animated ring for speaking */}
                   {isBotSpeaking && (
                     <div className="absolute inset-0 rounded-full border-[6px] border-white/20 border-t-white/60 animate-spin-slow" />
                   )}
@@ -801,19 +825,7 @@ export const PhoneBotModal: React.FC = () => {
               </div>
             )}
 
-            {!showKeypad && lastMessage?.quickActions && (
-              <div className="flex gap-2 overflow-x-auto p-4 no-scrollbar">
-                {lastMessage.quickActions.map((action, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleUserUtterance(action.action)}
-                    className="shrink-0 px-4 py-2.5 bg-slate-800/80 hover:bg-emerald-900/40 text-emerald-100 text-sm font-medium rounded-2xl border border-slate-700/50 transition whitespace-nowrap"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            
 
             {/* DTMF Keypad Drawer */}
             {showKeypad && (

@@ -121,8 +121,12 @@ export const processBotQuery = (
           newBookingContext: bookingContext,
           quickActions: [
             { label: '🌾 Wheat', action: 'wheat' },
+            { label: '🌿 Mustard', action: 'mustard' },
             { label: '🌱 Soybean', action: 'soybean' },
-            ]
+            { label: '🌰 Gram', action: 'gram' },
+            { label: '☁️ Cotton', action: 'cotton' },
+            { label: '🌾 Paddy', action: 'paddy' },
+          ]
         };
       }
 
@@ -244,10 +248,13 @@ export const processBotQuery = (
       displayText: language === 'hi' ? "🌾 आप कौन सी फसल लाना चाहते हैं?" : language === 'mr' ? "🌾 तुम्ही कोणते पीक आणणार?" : "🌾 Which crop do you want to bring?",
       newBookingContext: { step: 'crop' },
       quickActions: [
-        { label: '🌾 Wheat', action: 'wheat' },
-        { label: '🌱 Soybean', action: 'soybean' },
-        { label: '🌿 Mustard', action: 'mustard' },
-      ]
+            { label: '🌾 Wheat', action: 'wheat' },
+            { label: '🌿 Mustard', action: 'mustard' },
+            { label: '🌱 Soybean', action: 'soybean' },
+            { label: '🌰 Gram', action: 'gram' },
+            { label: '☁️ Cotton', action: 'cotton' },
+            { label: '🌾 Paddy', action: 'paddy' },
+          ]
     };
   }
 
