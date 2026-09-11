@@ -36,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBlueprintClick }) => {
     setIsAudioAssistantOpen,
     setIsOfficerScannerOpen,
     openPhoneBot,
+    setIsIVRDialpadOpen,
   } = useApp();
 
   const { language, setLanguage, t } = useLanguage();
@@ -119,6 +120,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onBlueprintClick }) => {
             >
               <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
               <span className="hidden sm:inline">Track AI</span>
+            </button>
+
+
+            {/* IVR Dialpad */}
+            <button
+              onClick={() => setIsIVRDialpadOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-lg text-xs font-semibold transition cursor-pointer"
+              title="Interactive Voice Response"
+            >
+              <PhoneCall className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="hidden sm:inline">Offline IVR</span>
             </button>
 
             {/* Audio assistant */}

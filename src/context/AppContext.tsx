@@ -157,7 +157,7 @@ interface AppContextType {
   addNotification: (notif: Omit<NotificationItem, 'id' | 'timestamp' | 'read'>) => void;
 
   // Active Modals
-  isIVRModalOpen: boolean;
+  isIVRModalOpen: boolean; isIVRDialpadOpen: boolean; setIsIVRDialpadOpen: (val: boolean) => void;
   setIsIVRModalOpen: (open: boolean) => void;
   isTokenModalOpen: boolean;
   setIsTokenModalOpen: (open: boolean) => void;
@@ -407,6 +407,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Modals
   const [isIVRModalOpen, setIsIVRModalOpen] = useState(false);
+  const [isIVRDialpadOpen, setIsIVRDialpadOpen] = useState(false);
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [isOfficerScannerOpen, setIsOfficerScannerOpen] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
@@ -724,6 +725,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addNotification,
         isIVRModalOpen,
         setIsIVRModalOpen,
+        isIVRDialpadOpen,
+        setIsIVRDialpadOpen,
         isTokenModalOpen,
         setIsTokenModalOpen,
         isOfficerScannerOpen,
