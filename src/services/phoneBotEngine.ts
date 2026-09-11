@@ -64,9 +64,10 @@ const CROP_SYNONYMS: { id: string; terms: string[] }[] = [
   { id: 'soybean', terms: ['soybean', 'soya', 'सोयाबीन', 'सोया', 'सोयाबीनचा'] },
   { id: 'mustard', terms: ['mustard', 'sarson', 'सरसों', 'राई', 'मोहरी'] },
   { id: 'onion', terms: ['onion', 'प्याज', 'प्याज़', 'कांदा', 'कांद्याचा'] },
-  { id: 'cotton', terms: ['cotton', 'कपास', 'रुई', 'कापूस', 'कपाशी'] },
-  { id: 'gram', terms: ['gram', 'chana', 'चना', 'चने', 'हरभरा'] },
+  { id: 'cotton', terms: ['cotton', 'cottan', 'court on', 'cot on', 'कपास', 'रुई', 'कापूस', 'कपाशी'] },
+  { id: 'gram', terms: ['gram', 'graham', 'chana', 'channa', 'चना', 'चने', 'हरभरा', 'chanay'] },
   { id: 'maize', terms: ['maize', 'corn', 'मक्का', 'मका', 'भुट्टा'] },
+  { id: 'paddy', terms: ['paddy', 'patty', 'dhan', 'dhaan', 'धान', 'भात', 'rice', 'chawal'] },
 ];
 
 export const processBotQuery = (
