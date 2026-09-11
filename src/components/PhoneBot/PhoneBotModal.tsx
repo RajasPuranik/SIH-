@@ -715,7 +715,7 @@ export const PhoneBotModal: React.FC = () => {
                       {lastMessage.quickActions.map((action, idx) => {
                         const total = lastMessage.quickActions!.length;
                         const angle = (-Math.PI / 2) + (idx * (2 * Math.PI) / total);
-                        const radius = 135; 
+                        const radius = 100; 
                         const x = Math.cos(angle) * radius;
                         const y = Math.sin(angle) * radius;
 
