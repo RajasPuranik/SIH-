@@ -1,4 +1,4 @@
-﻿import { CropInfo, SlotBooking } from '../types';
+import { CropInfo, SlotBooking } from '../types';
 
 export interface BotResponse {
   spokenText: string;
@@ -122,7 +122,8 @@ export const processBotQuery = (
   crops: CropInfo[],
   bookings: SlotBooking[],
   userDistrict: string = 'Indore',
-  language: SupportedBotLang = 'hi'
+  language: SupportedBotLang = 'hi',
+  userRole: string = 'farmer'
 ): BotResponse => {
   const q = rawQuery.toLowerCase().trim();
 
@@ -359,6 +360,72 @@ export const processBotQuery = (
         spokenText: `à¤†à¤œ ${crop.hindiName} à¤•à¤¾ à¤¸à¤°à¤•à¤¾à¤°à¥€ à¤¸à¤®à¤°à¥à¤¥à¤¨ à¤®à¥‚à¤²à¥à¤¯ â‚¹${crop.mspRate} à¤ªà¥à¤°à¤¤à¤¿ à¤•à¥à¤µà¤¿à¤‚à¤Ÿà¤² à¤¹à¥ˆà¥¤ à¤”à¤° à¤ªà¥à¤°à¤¾à¤‡à¤µà¥‡à¤Ÿ à¤®à¤‚à¤¡à¥€ à¤®à¥‡à¤‚ à¤­à¤¾à¤µ â‚¹${crop.currentPrivatePrice} à¤šà¤² à¤°à¤¹à¤¾ à¤¹à¥ˆ, à¤œà¥‹ à¤•à¤¿ à¤¸à¤®à¤°à¥à¤¥à¤¨ à¤®à¥‚à¤²à¥à¤¯ à¤¸à¥‡ â‚¹${Math.abs(diff)} ${isHigher ? 'à¤…à¤§à¤¿à¤•' : 'à¤•à¤®'} à¤¹à¥ˆà¥¤`,
         displayText: `ðŸŒ¾ **${crop.name} à¤†à¤œ à¤•à¤¾ à¤­à¤¾à¤µ:**\nâ€¢ **à¤¸à¤°à¤•à¤¾à¤°à¥€ MSP:** â‚¹${crop.mspRate}/à¤•à¥à¤µà¤¿à¤‚à¤Ÿà¤²\nâ€¢ **à¤ªà¥à¤°à¤¾à¤‡à¤µà¥‡à¤Ÿ à¤¬à¤¾à¤œà¤¾à¤° à¤­à¤¾à¤µ:** â‚¹${crop.currentPrivatePrice}/à¤•à¥à¤µà¤¿à¤‚à¤Ÿà¤²\nâ€¢ **à¤…à¤‚à¤¤à¤°:** ${isHigher ? '+' : '-'}â‚¹${Math.abs(diff)} (${isHigher ? 'à¤ªà¥à¤°à¤¾à¤‡à¤µà¥‡à¤Ÿ à¤®à¥‡à¤‚ à¤…à¤§à¤¿à¤• à¤²à¤¾à¤­' : 'à¤¸à¤°à¤•à¤¾à¤°à¥€ à¤®à¥‡à¤‚ à¤¬à¥‡à¤šà¥‡à¤‚'})`,
       };
+    }
+  }
+
+
+  // ROLE-SPECIFIC: OFFICER functions
+  if (userRole === 'mandi_officer' && (
+    q.includes('scan') || q.includes('verify') || q.includes('gate') || 
+    q.includes('quality') || q.includes('स्कैन') || q.includes('सत्यापन') || 
+    q.includes('गेट') || q === '9'
+  )) {
+    switch (language) {
+      case 'en':
+        return {
+          spokenText: 'To scan a farmer gate pass, tap the Gate Scanner button on your dashboard. Point your camera at the farmer QR code. The system will auto-advance the status from Arrived to Quality Check to Weighed.',
+          displayText: '🔍 **Officer Scanner:**\n• Tap "Gate Scanner" on dashboard\n• Point camera at farmer QR code\n• Status auto-advances: ARRIVED → QUALITY → WEIGHED',
+        };
+      case 'mr':
+        return {
+          spokenText: 'गेट स्कॅनर वापरण्यासाठी डॅशबोर्डवरील गेट स्कॅनर बटण दाबा. शेतकऱ्याचा QR कोड कॅमेऱ्यासमोर धरा.',
+          displayText: '🔍 **अधिकारी स्कॅनर:**\n• "गेट स्कॅनर" दाबा\n• शेतकऱ्याचा QR कोड स्कॅन करा\n• स्थिती स्वयंचलित अपडेट होईल',
+        };
+      default:
+        return {
+          spokenText: 'गेट स्कैनर का उपयोग करने के लिए डैशबोर्ड पर गेट स्कैनर बटन दबाएं। किसान का QR कोड कैमरे के सामने रखें।',
+          displayText: '🔍 **अधिकारी स्कैनर:**\n• "गेट स्कैनर" दबाएं\n• किसान का QR कोड स्कैन करें\n• स्थिति ऑटो अपडेट होगी',
+        };
+    }
+  }
+
+  // ROLE-SPECIFIC: BUYER functions  
+  if (userRole === 'corporate_buyer' && (
+    q.includes('bid') || q.includes('trade') || q.includes('exchange') || 
+    q.includes('order') || q.includes('buy') || q.includes('बोली') || 
+    q.includes('व्यापार') || q.includes('खरीद')
+  )) {
+    switch (language) {
+      case 'en':
+        return {
+          spokenText: 'You can place buy orders on the Crop Stock Exchange. Set your price per quintal, quantity, and the system will match you with sellers at your desired rate.',
+          displayText: '📈 **Buyer Trading:**\n• Go to Crop Stock Exchange tab\n• Place a BUY order with your price\n• System auto-matches with sellers\n• AI price prediction available',
+        };
+      default:
+        return {
+          spokenText: 'आप क्रॉप स्टॉक एक्सचेंज पर खरीद ऑर्डर दे सकते हैं। अपनी कीमत और मात्रा सेट करें, सिस्टम आपको विक्रेताओं से मिलाएगा।',
+          displayText: '📈 **खरीदार व्यापार:**\n• क्रॉप स्टॉक एक्सचेंज टैब पर जाएं\n• अपनी कीमत पर BUY ऑर्डर दें\n• AI मूल्य भविष्यवाणी उपलब्ध',
+        };
+    }
+  }
+
+  // ROLE-SPECIFIC: SHIPPER functions
+  if (userRole === 'shipper' && (
+    q.includes('delivery') || q.includes('accept') || q.includes('route') || 
+    q.includes('shipment') || q.includes('job') || q.includes('डिलीवरी') || 
+    q.includes('शिपमेंट') || q.includes('रूट')
+  )) {
+    switch (language) {
+      case 'en':
+        return {
+          spokenText: 'Check your Transporter Dashboard for available delivery jobs. You can see the pickup location, drop-off point, distance, and the offered price. Click Accept to start the delivery.',
+          displayText: '🚚 **Transporter Jobs:**\n• View available jobs on dashboard\n• See pickup & dropoff on map\n• Accept or reject based on price\n• Live GPS tracking once accepted',
+        };
+      default:
+        return {
+          spokenText: 'अपने ट्रांसपोर्टर डैशबोर्ड पर उपलब्ध डिलीवरी जॉब देखें। पिकअप, ड्रॉपऑफ, दूरी और कीमत देखकर एक्सेप्ट करें।',
+          displayText: '🚚 **ट्रांसपोर्टर जॉब्स:**\n• डैशबोर्ड पर उपलब्ध जॉब देखें\n• मैप पर पिकअप और ड्रॉपऑफ देखें\n• कीमत के आधार पर Accept/Reject\n• GPS ट्रैकिंग शुरू होगी',
+        };
     }
   }
 

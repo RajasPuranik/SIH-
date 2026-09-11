@@ -46,8 +46,8 @@ export const PhoneBotModal: React.FC = () => {
   const [botLang, setBotLang] = useState<SupportedBotLang>('hi');
 
   // Call States
-  const [callState, setCallState] = useState<'incoming' | 'calling' | 'connected' | 'ended'>('incoming');
-  const callStateRef = useRef<'incoming' | 'calling' | 'connected' | 'ended'>('incoming');
+  const [callState, setCallState] = useState<'incoming' | 'calling' | 'lang_select' | 'connected' | 'ended'>('incoming');
+  const callStateRef = useRef<'incoming' | 'calling' | 'lang_select' | 'connected' | 'ended'>('incoming');
   useEffect(() => {
     callStateRef.current = callState;
   }, [callState]);
