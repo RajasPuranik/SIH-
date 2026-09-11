@@ -610,6 +610,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
     playFeedbackTone('success');
+
+    // Notify the farmer
+    const booking = bookings.find(b => b.id === id || b.tokenNumber === id);
+    if (booking) {
+      let stageName = newStatus.replace(/_/g, ' ');
+      if (newStatus === 'ARRIVED_AT_GATE') stageName = 'Arrived at Gate';
+      if (newStatus === 'QUALITY_VERIFIED') stageName = 'Quality Verified';
+      if (newStatus === 'WEIGHED') stageName = 'Weighed';
+      if (newStatus === 'PAYMENT_COMPLETED') stageName = 'Payment Completed';
+
+      addNotification({
+        type: 'SYSTEM',
+        title: `Token ${booking.tokenNumber} Updated`,
+        message: `Your token has successfully advanced to the '${stageName}' stage. ${remarks}`
+      });
+    }
   };
 
   const addOrderItem = (item: Omit<OrderBookItem, 'id' | 'timestamp'>) => {

@@ -271,6 +271,12 @@ export const processBotQuery = (
 
   // Initiation of Booking
   if (!bookingContext && (q.includes('book') || q.includes('slot') || q.includes('booking') || q.includes('बुक') || q.includes('बुकिंग') || q.includes('टोकन बना'))) {
+    if (userRole !== 'farmer') {
+      return {
+        spokenText: language === 'hi' ? "क्षमा करें, केवल किसान ही स्लॉट बुक और ट्रैक कर सकते हैं।" : language === 'mr' ? "क्षमस्व, केवळ शेतकरी स्लॉट बुक आणि ट्रॅक करू शकतात." : "Sorry, only farmers can book and track slots via TrackAI.",
+        displayText: language === 'hi' ? "🚫 केवल किसानों को अनुमति है" : language === 'mr' ? "🚫 केवळ शेतकऱ्यांना परवानगी आहे" : "🚫 Only farmers allowed",
+      };
+    }
     return {
       spokenText: language === 'hi' ? "आप कौन सी फसल लाना चाहते हैं?" : language === 'mr' ? "तुम्ही कोणते पीक आणू इच्छिता?" : "Which crop do you want to bring?",
       displayText: language === 'hi' ? "🌾 आप कौन सी फसल लाना चाहते हैं?" : language === 'mr' ? "🌾 तुम्ही कोणते पीक आणणार?" : "🌾 Which crop do you want to bring?",
@@ -401,6 +407,12 @@ export const processBotQuery = (
     q.includes('गेट') ||
     q === '1'
   ) {
+    if (userRole !== 'farmer') {
+      return {
+        spokenText: language === 'hi' ? "क्षमा करें, केवल किसान ही स्लॉट बुक और ट्रैक कर सकते हैं।" : language === 'mr' ? "क्षमस्व, केवळ शेतकरी स्लॉट बुक आणि ट्रॅक करू शकतात." : "Sorry, only farmers can book and track slots via TrackAI.",
+        displayText: language === 'hi' ? "🚫 केवल किसानों को अनुमति है" : language === 'mr' ? "🚫 केवळ शेतकऱ्यांना परवानगी आहे" : "🚫 Only farmers allowed",
+      };
+    }
     const activeBooking = bookings[0];
     if (activeBooking) {
       const stage = activeBooking.status.replace(/_/g, ' ');
