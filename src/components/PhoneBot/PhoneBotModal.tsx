@@ -44,6 +44,7 @@ export const PhoneBotModal: React.FC = () => {
 
   // Active Language State
   const [botLang, setBotLang] = useState<SupportedBotLang>('hi');
+  const botLangRef = useRef<SupportedBotLang>('hi');
 
   // Call States
   const [callState, setCallState] = useState<'incoming' | 'calling' | 'lang_select' | 'connected' | 'ended'>('incoming');
@@ -388,7 +389,7 @@ export const PhoneBotModal: React.FC = () => {
     }
 
     try {
-      const res = await transcribeWavWithApi(wavBlob, lang);
+      const res = await transcribeWavWithApi(wavBlob, botLangRef.current);
       setIsProcessingAudio(false);
 
       if (res.success && res.transcript && res.transcript.trim()) {
@@ -396,7 +397,7 @@ export const PhoneBotModal: React.FC = () => {
         // Auto-detect language from spoken words or server result for instant multilingual matching
         // Multi-language adaptability removed by user request
         // Force use of the currently selected botLang
-        handleUserUtterance(text, botLang);
+        handleUserUtterance(text, botLangRef.current);
       }
     } catch (err) {
       console.error('STT transcribing error:', err);
@@ -488,6 +489,7 @@ export const PhoneBotModal: React.FC = () => {
 
   const handleLanguageChange = (newLang: SupportedBotLang) => {
     setBotLang(newLang);
+    botLangRef.current = newLang;
     playFeedbackTone('ping');
     if (callState === 'connected') {
       if (newLang === 'en') handleUserUtterance('switch to english', 'en');
@@ -499,13 +501,13 @@ export const PhoneBotModal: React.FC = () => {
   const handleKeypadPress = (digit: string) => {
     playFeedbackTone('ping');
     if (digit === '1') {
-      setBotLang('en');
+      setBotLang('en'); botLangRef.current = 'en';
       handleUserUtterance('switch to english');
     } else if (digit === '2') {
-      setBotLang('hi');
+      setBotLang('hi'); botLangRef.current = 'hi';
       handleUserUtterance('switch to hindi');
     } else if (digit === '3') {
-      setBotLang('mr');
+      setBotLang('mr'); botLangRef.current = 'mr';
       handleUserUtterance('switch to marathi');
     } else {
       handleUserUtterance(digit);
@@ -615,21 +617,21 @@ export const PhoneBotModal: React.FC = () => {
               
               <div className="w-full space-y-4 max-w-[280px]">
                 <button 
-                  onClick={() => { setBotLang('en'); connectCall('en'); }} 
+                  onClick={() => { setBotLang('en'); botLangRef.current = 'en'; connectCall('en'); }} 
                   className="w-full py-4 bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 rounded-2xl flex items-center justify-center gap-3 transition-all cursor-pointer group"
                 >
                   <span className="text-xl">🇬🇧</span>
                   <span className="text-white font-medium text-lg tracking-wide group-hover:text-white">English</span>
                 </button>
                 <button 
-                  onClick={() => { setBotLang('hi'); connectCall('hi'); }} 
+                  onClick={() => { setBotLang('hi'); botLangRef.current = 'hi'; connectCall('hi'); }} 
                   className="w-full py-4 bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 rounded-2xl flex items-center justify-center gap-3 transition-all cursor-pointer group"
                 >
                   <span className="text-xl">🇮🇳</span>
                   <span className="text-white font-medium text-lg tracking-wide group-hover:text-white">हिन्दी</span>
                 </button>
                 <button 
-                  onClick={() => { setBotLang('mr'); connectCall('mr'); }} 
+                  onClick={() => { setBotLang('mr'); botLangRef.current = 'mr'; connectCall('mr'); }} 
                   className="w-full py-4 bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 rounded-2xl flex items-center justify-center gap-3 transition-all cursor-pointer group"
                 >
                   <span className="text-xl">🚩</span>
