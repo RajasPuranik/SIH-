@@ -27,6 +27,7 @@ export const GovtProcurementView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'tracker' | 'book' | 'pass' | 'payment' | 'scanner' | 'map'>(defaultTab);
 
   const activeBooking = getActiveBooking();
+    console.log('GovtProcurementView render: activeBooking is', activeBooking);
 
   const tabs = isOfficer
     ? [
