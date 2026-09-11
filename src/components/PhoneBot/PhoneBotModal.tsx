@@ -710,7 +710,7 @@ export const PhoneBotModal: React.FC = () => {
                 />
                 
                                   {/* Floating Quick Actions Bubbles */}
-                  {!showKeypad && lastMessage?.quickActions && (
+                  {!showKeypad && lastMessage?.quickActions && lastMessage.quickActions.length > 3 && (
                     <div className="absolute inset-0 pointer-events-none z-50">
                       {lastMessage.quickActions.map((action, idx) => {
                         const total = lastMessage.quickActions!.length;
@@ -826,6 +826,20 @@ export const PhoneBotModal: React.FC = () => {
             )}
 
             
+
+            {!showKeypad && lastMessage?.quickActions && lastMessage.quickActions.length <= 3 && (
+              <div className="flex gap-2 overflow-x-auto p-4 no-scrollbar w-full max-w-sm mx-auto justify-center">
+                {lastMessage.quickActions.map((action, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleUserUtterance(action.action)}
+                    className="shrink-0 px-4 py-2.5 bg-slate-800/80 hover:bg-emerald-900/40 text-emerald-100 text-sm font-medium rounded-2xl border border-slate-700/50 transition whitespace-nowrap"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* DTMF Keypad Drawer */}
             {showKeypad && (
