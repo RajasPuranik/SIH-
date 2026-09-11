@@ -173,7 +173,13 @@ export const processBotQuery = (
 
     if (bookingContext.step === 'vehicleNumber') {
       let vrn = rawQuery.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-      if (vrn.length < 4) vrn = 'MP-09-XX-0000'; // Fallback if they speak vaguely
+      const pureAlphaNum = vrn.replace(/-/g, '');
+      const vrnMatch = pureAlphaNum.match(/^([A-Z]{2})([0-9]{1,2})([A-Z]{1,3})([0-9]{1,4})$/);
+      if (vrnMatch) {
+        vrn = `${vrnMatch[1]}-${vrnMatch[2]}-${vrnMatch[3]}-${vrnMatch[4]}`;
+      } else if (vrn.length < 4) {
+        vrn = 'MP-09-XX-0000'; // Fallback
+      }
       
       return {
         spokenText: language === 'hi' ? "आप मंडी किस समय पहुंचेंगे? (जैसे सुबह 10 बजे या दोपहर 1 बजे)" : language === 'mr' ? "तुम्ही मंडीत किती वाजता पोहोचणार? (सकाळी 10 किंवा दुपारी 1)" : "What time will you arrive at the mandi? (e.g. 10 AM or 1 PM)",

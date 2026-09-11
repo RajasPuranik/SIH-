@@ -772,10 +772,17 @@ export const PhoneBotModal: React.FC = () => {
                 <form 
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (vrnInput.trim()) {
-                      handleUserUtterance(vrnInput.trim());
-                      setVrnInput('');
+                    const cleaned = vrnInput.trim().toUpperCase();
+                    if (!cleaned) return;
+                    
+                    const vrnRegex = /^[A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{1,3}[ -]?[0-9]{1,4}$/;
+                    if (!vrnRegex.test(cleaned)) {
+                      addNotification({ type: 'SYSTEM', title: 'Invalid Format', message: 'Please enter a valid VRN (e.g., MP-09-AB-1234)' });
+                      return;
                     }
+                    
+                    handleUserUtterance(cleaned);
+                    setVrnInput('');
                   }}
                   className="flex gap-2"
                 >
@@ -784,6 +791,7 @@ export const PhoneBotModal: React.FC = () => {
                     value={vrnInput}
                     onChange={(e) => setVrnInput(e.target.value.toUpperCase())}
                     placeholder="Type VRN..."
+                    maxLength={13}
                     className="flex-1 bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-2 text-emerald-300 text-sm font-bold outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 uppercase tracking-widest placeholder:text-slate-500 placeholder:font-normal"
                   />
                   <button type="submit" disabled={!vrnInput.trim()} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white p-2 rounded-xl transition shadow-lg">
