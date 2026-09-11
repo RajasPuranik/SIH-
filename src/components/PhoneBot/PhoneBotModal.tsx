@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   processBotQuery,
   BotResponse,
@@ -79,8 +80,9 @@ export const PhoneBotModal: React.FC = () => {
 
   // Conversation transcript
   const [messages, setMessages] = useState<
-    { sender: 'bot' | 'farmer'; text: string; time: string; quickActions?: { label: string; action: string }[] }[]
+    { sender: 'bot' | 'farmer'; text: string; time: string; quickActions?: { label: string; action: string }[]; generatedToken?: any }[]
   >([]);
+  const bookingContextRef = useRef<any>(null);
 
   const speechRecognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
@@ -463,8 +465,14 @@ export const PhoneBotModal: React.FC = () => {
       crops,
       bookings,
       currentUser?.district || 'Indore',
-      lang
+      lang,
+      'farmer',
+      bookingContextRef.current
     );
+
+    if (botRes.newBookingContext !== undefined) {
+      bookingContextRef.current = botRes.newBookingContext;
+    }
 
     // Speak and display immediately with zero delay
     setMessages((prev) => [
@@ -474,6 +482,7 @@ export const PhoneBotModal: React.FC = () => {
         text: botRes.displayText,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         quickActions: botRes.quickActions,
+        generatedToken: botRes.generatedToken,
       },
     ]);
     speakText(botRes.spokenText, lang);
@@ -646,7 +655,23 @@ export const PhoneBotModal: React.FC = () => {
             <div className="flex flex-col items-center w-full h-full justify-center">
               
               {/* THE ORB */}
-              <div className="relative flex items-center justify-center w-48 h-48 mb-12">
+              {lastMessage?.generatedToken ? (
+                  <div className="mb-6 p-4 bg-white rounded-xl shadow-[0_0_40px_rgba(16,185,129,0.3)] w-64 text-center animate-scale-in z-20">
+                    <h3 className="text-emerald-700 font-bold mb-2">Gate Pass / टोकन</h3>
+                    <div className="flex justify-center mb-3">
+                      <QRCodeCanvas value={lastMessage.generatedToken.tokenNumber} size={120} />
+                    </div>
+                    <div className="text-left text-sm text-slate-700 space-y-1">
+                      <p><strong>Name:</strong> {currentUser?.name || 'Farmer'}</p>
+                      <p><strong>Token:</strong> {lastMessage.generatedToken.tokenNumber}</p>
+                      <p><strong>Crop:</strong> {lastMessage.generatedToken.crop}</p>
+                      <p><strong>Qtl:</strong> {lastMessage.generatedToken.quantity}</p>
+                      <p><strong>Vehicle:</strong> {lastMessage.generatedToken.vehicle}</p>
+                      <p><strong>Time:</strong> {lastMessage.generatedToken.time}</p>
+                    </div>
+                  </div>
+              ) : (
+                <div className="relative flex items-center justify-center w-48 h-48 mb-12">
                 {/* Outer Glow */}
                 <div 
                   className={`absolute inset-0 rounded-full blur-3xl transition-all duration-300 ${
@@ -678,7 +703,7 @@ export const PhoneBotModal: React.FC = () => {
                   )}
                 </div>
               </div>
-
+              )}
               {/* TRANSCRIPT AREA */}
               <div className="h-32 w-full flex flex-col items-center justify-start text-center px-6">
                 {currentSpeechTranscript ? (
