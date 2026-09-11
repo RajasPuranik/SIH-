@@ -16,7 +16,8 @@ export const MandiGateOfficerModal: React.FC = () => {
     setIsOfficerScannerOpen, 
     bookings, 
     updateBookingStatus, 
-    playFeedbackTone 
+    playFeedbackTone,
+    createBooking 
   } = useApp();
 
   const [scanResult, setScanResult] = useState<string | null>(null);
@@ -82,13 +83,32 @@ export const MandiGateOfficerModal: React.FC = () => {
   if (!isOfficerScannerOpen) return null;
 
   const handleTokenScanned = (tokenText: string) => {
-    const booking = bookingsRef.current.find(b => b.tokenNumber === tokenText || b.id === tokenText);
+    let booking = bookingsRef.current.find(b => b.tokenNumber === tokenText || b.id === tokenText);
     
     if (!booking) {
-      setErrorMsg('Invalid QR Code: Token not found in database.');
-      playFeedbackTone('alert');
-      setTimeout(() => setErrorMsg(''), 3000);
-      return;
+      if (tokenText.startsWith('KT-')) {
+        booking = createBooking({
+          tokenNumber: tokenText,
+          farmerName: 'Demo Farmer (Cross-Device)',
+          farmerPhone: '+91 99999 99999',
+          aadhaarMasked: 'XXXX-XXXX-0000',
+          state: 'Madhya Pradesh',
+          district: 'Indore',
+          mandiName: 'Indore APMC Mandi',
+          cropId: 'wheat',
+          cropName: 'Wheat (गेहूँ)',
+          estimatedQuantityQuintals: 50,
+          vehicleType: 'Tractor Trolley',
+          vehicleNumber: 'MP-09-XX-0000',
+          bookingDate: new Date().toISOString().split('T')[0],
+          scheduledTimeSlot: '10:00 AM - 11:30 AM',
+        });
+      } else {
+        setErrorMsg('Invalid QR Code: Token not found in database.');
+        playFeedbackTone('alert');
+        setTimeout(() => setErrorMsg(''), 3000);
+        return;
+      }
     }
 
     setScanResult(booking.tokenNumber);
