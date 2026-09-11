@@ -94,10 +94,7 @@ export const PhoneBotModal: React.FC = () => {
         setCallState('incoming');
         playFeedbackTone('ping');
       } else {
-        setCallState('calling');
-        setTimeout(() => {
-          connectCall();
-        }, 1600);
+        setCallState('lang_select');
       }
     } else {
       endCall();
