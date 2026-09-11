@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Phone,
   PhoneCall,
@@ -26,7 +26,7 @@ import {
   SupportedBotLang,
   BOT_LANGUAGES,
   getInitialGreeting,
-  
+  detectLanguageFromText,
 } from '../../services/phoneBotEngine';
 import { AudioRecorder, transcribeWavWithApi } from '../../services/audioRecorder';
 
@@ -46,8 +46,8 @@ export const PhoneBotModal: React.FC = () => {
   const [botLang, setBotLang] = useState<SupportedBotLang>('hi');
 
   // Call States
-  const [callState, setCallState] = useState<'incoming' | 'calling' | 'lang_select' | 'connected' | 'ended'>('incoming');
-  const callStateRef = useRef<'incoming' | 'calling' | 'lang_select' | 'connected' | 'ended'>('incoming');
+  const [callState, setCallState] = useState<'incoming' | 'calling' | 'connected' | 'ended'>('incoming');
+  const callStateRef = useRef<'incoming' | 'calling' | 'connected' | 'ended'>('incoming');
   useEffect(() => {
     callStateRef.current = callState;
   }, [callState]);
@@ -130,7 +130,7 @@ export const PhoneBotModal: React.FC = () => {
     setCallState('connected');
     playFeedbackTone('success');
 
-    const farmerFirstName = currentUser?.name?.split(' ')[0] || '�•िसान भा�ˆ';
+    const farmerFirstName = currentUser?.name?.split(' ')[0] || 'किसान भाई';
     const activeBooking = bookings[0];
 
     const greeting = getInitialGreeting(
@@ -145,9 +145,9 @@ export const PhoneBotModal: React.FC = () => {
       text: greeting.displayText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       quickActions: [
-        { label: '�ŸŒ� भाव / Rates', action: 'भाव' },
-        { label: '�Ÿ“‹ �Ÿ�‹�•न / Token', action: '�Ÿ�‹�•न स्थिति' },
-        { label: '�Ÿ�›️ म�‚ड�€ भ�€ड़ / Queue', action: 'म�‚ड�€ भ�€ड़' },
+        { label: '🌾 भाव / Rates', action: 'भाव' },
+        { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+        { label: '🏛️ मंडी भीड़ / Queue', action: 'मंडी भीड़' },
       ],
     };
 
@@ -160,7 +160,7 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // �”€�”€�”€ NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) �”€�”€�”€
+  // ─── NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) ───
   const speakText = (text: string, currentLang: SupportedBotLang = botLang) => {
     if (!isSpeakerOn) {
       if (!isMuted && callStateRef.current === 'connected') {
@@ -282,7 +282,7 @@ export const PhoneBotModal: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  // �”€�”€�”€ INSTANT BOT INTERRUPTION �”€�”€�”€
+  // ─── INSTANT BOT INTERRUPTION ───
   const interruptBot = () => {
     if (audioElementRef.current) {
       try {
@@ -309,7 +309,7 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // �”€�”€�”€ ROBUST FULL-DUPLEX CONTINUOUS SPEECH-TO-TEXT �”€�”€�”€
+  // ─── ROBUST FULL-DUPLEX CONTINUOUS SPEECH-TO-TEXT ───
   const startListening = async (lang: SupportedBotLang = botLang) => {
     if (isStartingRef.current) return;
     if (audioRecorderRef.current) {
@@ -330,7 +330,8 @@ export const PhoneBotModal: React.FC = () => {
         sampleRate: 16000,
         silenceDurationMs: 650,
         speechThreshold: 0.010,
-                isBotSpeaking: () => isBotSpeakingRef.current,
+        botSpeakingThreshold: 0.035,
+        isBotSpeaking: () => isBotSpeakingRef.current,
         onVoiceInterrupt: () => {
           // Whenever ANY word is spoken by user while bot is speaking, instantly stop the bot!
           if (audioElementRef.current) {
@@ -370,7 +371,7 @@ export const PhoneBotModal: React.FC = () => {
       isStartingRef.current = false;
       setIsListening(false);
       if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        setMicStatusMsg('मा�‡�• �…नुमति �…स्व�€�•�ƒत (Microphone blocked). ब्रा�‰�œ़र स�‡�Ÿि�‚�—्स म�‡�‚ �…नुमति द�‡�‚.');
+        setMicStatusMsg('माइक अनुमति अस्वीकृत (Microphone blocked). ब्राउज़र सेटिंग्स में अनुमति दें.');
       }
     }
   };
@@ -403,9 +404,12 @@ export const PhoneBotModal: React.FC = () => {
       if (res.success && res.transcript && res.transcript.trim()) {
         const text = res.transcript.trim();
         // Auto-detect language from spoken words or server result for instant multilingual matching
-        // Multi-language adaptability removed by user request
-        // Force use of the currently selected botLang
-        handleUserUtterance(text, botLang);
+        const detected = ((res as any).lang as SupportedBotLang) || detectLanguageFromText(text);
+        const activeLang: SupportedBotLang = detected || lang || botLang;
+        if (activeLang !== botLang) {
+          setBotLang(activeLang);
+        }
+        handleUserUtterance(text, activeLang);
       }
     } catch (err) {
       console.error('STT transcribing error:', err);
@@ -496,7 +500,7 @@ export const PhoneBotModal: React.FC = () => {
     playFeedbackTone('ping');
     stopListening();
     if (callState === 'connected') {
-      const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || '�•िसान भा�ˆ');
+      const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || 'किसान भाई');
       setMessages((prev) => [
         ...prev,
         {
@@ -504,8 +508,8 @@ export const PhoneBotModal: React.FC = () => {
           text: greeting.displayText,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           quickActions: [
-            { label: '�ŸŒ� भाव / Rates', action: 'भाव' },
-            { label: '�Ÿ“‹ �Ÿ�‹�•न / Token', action: '�Ÿ�‹�•न स्थिति' },
+            { label: '🌾 भाव / Rates', action: 'भाव' },
+            { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
           ],
         },
       ]);
@@ -515,18 +519,15 @@ export const PhoneBotModal: React.FC = () => {
 
   const handleKeypadPress = (digit: string) => {
     playFeedbackTone('ping');
-    if (digit === '1') {
-      setBotLang('en');
-      handleUserUtterance('switch to english');
-    } else if (digit === '2') {
-      setBotLang('hi');
-      handleUserUtterance('switch to hindi');
-    } else if (digit === '3') {
-      setBotLang('mr');
-      handleUserUtterance('switch to marathi');
-    } else {
-      handleUserUtterance(digit);
-    }
+    const labelMap: Record<string, string> = {
+      '1': 'टोकन स्थिति (1)',
+      '2': 'सरकारी MSP भाव (2)',
+      '3': 'मंडी भीड़ व प्रतीक्षा (3)',
+      '4': 'नया स्लॉट बुक करें (4)',
+      '9': 'मंडी अधिकारी से बात (9)',
+    };
+    const query = labelMap[digit] || digit;
+    handleUserUtterance(query);
   };
 
   const endCall = () => {
@@ -575,16 +576,39 @@ export const PhoneBotModal: React.FC = () => {
           <div className="w-12 h-3 bg-slate-800 rounded-full border border-slate-700" />
           <div className="flex items-center gap-1 font-mono text-[10px] text-emerald-400">
             <span>Neural 4G</span>
-            <span>�Ÿ“�</span>
+            <span>📶</span>
           </div>
         </div>
 
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: INCOMING CALL �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
+        {/* ────────── MULTILINGUAL LANGUAGE BAR ────────── */}
+        <div className="bg-slate-950/90 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between gap-1 overflow-x-auto shrink-0">
+          <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0 mr-1">
+            <Globe className="w-3 h-3 text-emerald-400" />
+            <span className="font-semibold">Voice:</span>
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {BOT_LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => handleLanguageChange(lang.code)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer shrink-0 border ${
+                  botLang === lang.code
+                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-xs'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
+                }`}
+              >
+                {lang.flag} {lang.nativeName}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ────────── STATE: INCOMING CALL ────────── */}
         {callState === 'incoming' && (
           <div className="flex-1 flex flex-col items-center justify-between p-6 text-center">
             <div className="pt-6 space-y-3">
               <div className="w-24 h-24 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-5xl shadow-lg animate-pulse">
-                �Ÿ�›️
+                🏛️
               </div>
               <div>
                 <h3 className="text-xl font-extrabold text-white">APMC Mandi Helpdesk</h3>
@@ -598,7 +622,7 @@ export const PhoneBotModal: React.FC = () => {
             </div>
 
             <div className="bg-slate-800/80 rounded-2xl p-3 border border-slate-700/60 max-w-xs text-xs text-slate-300 leading-relaxed">
-              �🔔 <strong className="text-white">Live Voice Alert:</strong> Slot status verification &amp; priority entry update for your vehicle.
+              🔔 <strong className="text-white">Live Voice Alert:</strong> Slot status verification &amp; priority entry update for your vehicle.
             </div>
 
             {/* Accept / Decline Buttons */}
@@ -622,16 +646,16 @@ export const PhoneBotModal: React.FC = () => {
           </div>
         )}
 
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: DIALING / CALLING �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
+        {/* ────────── STATE: DIALING / CALLING ────────── */}
         {callState === 'calling' && (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
             <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-4xl animate-pulse">
-              �ŸŒ�
+              🌾
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">�•िसान व�‰�‡स ब�‰�Ÿ</h3>
+              <h3 className="text-lg font-bold text-white">किसान वॉइस बॉट</h3>
               <p className="text-xs text-slate-400">1800-180-1551 (Toll-Free)</p>
-              <p className="text-xs text-emerald-400 mt-2 font-medium animate-pulse">�•�‰ल मिला�ˆ �œा रह�€ ह�ˆ (Connecting...)</p>
+              <p className="text-xs text-emerald-400 mt-2 font-medium animate-pulse">कॉल मिलाई जा रही है (Connecting...)</p>
             </div>
             <button
               onClick={endCall}
@@ -642,23 +666,23 @@ export const PhoneBotModal: React.FC = () => {
           </div>
         )}
 
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: CONNECTED CALL �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
+        {/* ────────── STATE: CONNECTED CALL ────────── */}
         {callState === 'connected' && (
           <div className="flex-1 flex flex-col justify-between overflow-hidden">
             {/* Call Header */}
             <div className="p-3 bg-slate-800/60 border-b border-slate-700/60 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg font-bold">
-                  �ŸŒ�
+                  🌾
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-white">�•िसान फ�‹न ब�‰�Ÿ</span>
+                    <span className="font-bold text-xs text-white">किसान फोन बॉट</span>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono text-emerald-400 font-semibold">{formatTimer(callDuration)}</span>
-                    <span className="text-[9px] text-slate-400 font-mono">�€� {activeLangConfig.voice.split('-')[1]}</span>
+                    <span className="text-[9px] text-slate-400 font-mono">• {activeLangConfig.voice.split('-')[1]}</span>
                   </div>
                 </div>
               </div>
@@ -690,11 +714,11 @@ export const PhoneBotModal: React.FC = () => {
                 ))}
                 <span className="text-[9px] font-mono font-bold">
                   {isBotSpeaking ? (
-                    <span className="text-amber-300">ब�‹ल रहा ह�ˆ</span>
+                    <span className="text-amber-300">बोल रहा है</span>
                   ) : isListening ? (
-                    <span className="text-emerald-300">सुन रह�‡ ह�ˆ�‚</span>
+                    <span className="text-emerald-300">सुन रहे हैं</span>
                   ) : (
-                    <span className="text-slate-400">त�ˆयार</span>
+                    <span className="text-slate-400">तैयार</span>
                   )}
                 </span>
               </div>
@@ -736,15 +760,15 @@ export const PhoneBotModal: React.FC = () => {
               <div className="pt-2 border-t border-slate-800/80">
                 <div className="text-[9px] text-slate-400 font-bold mb-1.5 flex items-center gap-1">
                   <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-                  <span>Quick Questions:</span>
+                  <span>त्वरित प्रश्न (Quick Questions):</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    { label: '�ŸŒ� �†�œ �•ा भाव', q: '�†�œ �•ा म�‚ड�€ भाव �•्या ह�ˆ' },
-                    { label: '�Ÿ“‹ म�‡रा �Ÿ�‹�•न', q: 'म�‡रा �Ÿ�‹�•न न�‚बर �”र स्थिति बताए�‚' },
-                    { label: '�Ÿ�›️ म�‚ड�€ भ�€ड़', q: 'म�‚ड�€ म�‡�‚ �…भ�€ भ�€ड़ �”र �•तार �•ितन�€ ह�ˆ' },
-                    { label: '�ŸŒ�️ म�Œसम', q: '�†�œ �•ा म�Œसम �•�ˆसा रह�‡�—ा' },
-                    { label: '�Ÿ“� नया �Ÿ�‹�•न', q: 'नया स्ल�‰�Ÿ बु�• �•रना ह�ˆ' },
+                    { label: '🌾 आज का भाव', q: 'आज का मंडी भाव क्या है' },
+                    { label: '📋 मेरा टोकन', q: 'मेरा टोकन नंबर और स्थिति बताएं' },
+                    { label: '🏛️ मंडी भीड़', q: 'मंडी में अभी भीड़ और कतार कितनी है' },
+                    { label: '🌤️ मौसम', q: 'आज का मौसम कैसा रहेगा' },
+                    { label: '📦 नया टोकन', q: 'नया स्लॉट बुक करना है' },
                   ].map((chip, idx) => (
                     <button
                       key={idx}
@@ -766,17 +790,17 @@ export const PhoneBotModal: React.FC = () => {
               )}
             </div>
 
-            {/* �”€�”€�”€ BOT SPEAKING PILL (Clean & Informational, NO Interrupt button) �”€�”€�”€ */}
+            {/* ─── BOT SPEAKING PILL (Clean & Informational, NO Interrupt button) ─── */}
             {isBotSpeaking && (
               <div className="mx-3 my-1 p-2 bg-slate-800/90 text-emerald-300 rounded-2xl border border-slate-700 shadow-md flex items-center justify-center gap-2 shrink-0 animate-fade-in">
                 <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
                 <span className="text-[11px] font-semibold text-slate-200">
-                  ब�‰�Ÿ ब�‹ल रहा ह�ˆ... ({activeLangConfig.nativeName})
+                  बॉट बोल रहा है... ({activeLangConfig.nativeName})
                 </span>
               </div>
             )}
 
-            {/* �”€�”€�”€ LIVE MIC LISTENING BANNER (WITH REAL-TIME EQUALIZER) �”€�”€�”€ */}
+            {/* ─── LIVE MIC LISTENING BANNER (WITH REAL-TIME EQUALIZER) ─── */}
             {isListening && !isBotSpeaking && (
               <div className="mx-3 my-1 p-2.5 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 border border-emerald-500/60 rounded-2xl shadow-lg flex items-center justify-between gap-2 shrink-0 animate-fade-in">
                 <div className="flex items-center gap-2.5">
@@ -786,10 +810,10 @@ export const PhoneBotModal: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-[11px] font-bold text-emerald-200">
-                      {isUserSpeaking ? '�🎙️ �†प�•�€ �†वा�œ़ �† रह�€ ह�ˆ...' : '�🎙️ ब�‹लिए, हम सुन रह�‡ ह�ˆ�‚...'}
+                      {isUserSpeaking ? '🎙️ आपकी आवाज़ आ रही है...' : '🎙️ बोलिए, हम सुन रहे हैं...'}
                     </div>
                     <div className="text-[9px] text-emerald-400 font-medium">
-                      ({activeLangConfig.nativeName} �€” ब�‹ल�•र 1-2 स�‡�•�‚ड रु�•�‡�‚)
+                      ({activeLangConfig.nativeName} — बोलकर 1-2 सेकंड रुकें)
                     </div>
                   </div>
                 </div>
@@ -810,17 +834,17 @@ export const PhoneBotModal: React.FC = () => {
               </div>
             )}
 
-            {/* �”€�”€�”€ PROCESSING VOICE INDICATOR �”€�”€�”€ */}
+            {/* ─── PROCESSING VOICE INDICATOR ─── */}
             {isProcessingAudio && (
               <div className="mx-3 my-1 p-2 bg-slate-800/90 text-amber-300 rounded-2xl border border-amber-500/40 shadow-md flex items-center justify-center gap-2 shrink-0 animate-pulse">
                 <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
                 <span className="text-[11px] font-bold text-amber-200">
-                  �†प�•�€ बात समझ रह�‡ ह�ˆ�‚... (Processing voice...)
+                  आपकी बात समझ रहे हैं... (Processing voice...)
                 </span>
               </div>
             )}
 
-            {/* �”€�”€�”€ LIVE SPEECH TRANSCRIPT PREVIEW �”€�”€�”€ */}
+            {/* ─── LIVE SPEECH TRANSCRIPT PREVIEW ─── */}
             {currentSpeechTranscript && (
               <div className="mx-3 my-1 p-2 bg-emerald-800/90 text-white rounded-xl text-xs font-semibold italic text-center animate-fade-in shrink-0 border border-emerald-400/60 shadow-md">
                 "{currentSpeechTranscript}"
@@ -831,7 +855,7 @@ export const PhoneBotModal: React.FC = () => {
             {showKeypad && (
               <div className="p-3 bg-slate-950/95 border-t border-slate-800 animate-slide-up shrink-0">
                 <div className="text-[10px] text-slate-400 text-center mb-2 font-mono">
-                  Language: 1=English | 2=Hindi | 3=Marathi
+                  IVR: 1=Token | 2=MSP | 3=Queue | 4=Book | 9=Officer
                 </div>
                 <div className="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
                   {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((k) => (
@@ -859,7 +883,7 @@ export const PhoneBotModal: React.FC = () => {
                     setTextInput('');
                   }
                 }}
-                placeholder="ब�‹ल�‡�‚ या लि�–�‡�‚ (Speak or type)..."
+                placeholder="बोलें या लिखें (Speak or type)..."
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               />
               <button
@@ -885,10 +909,10 @@ export const PhoneBotModal: React.FC = () => {
                     ? 'bg-amber-600 text-white animate-pulse ring-2 ring-amber-400'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 }`}
-                title={isMuted ? 'मा�‡�• �…नम्य�‚�Ÿ �•र�‡�‚ (Unmute)' : 'मा�‡�• म्य�‚�Ÿ �•र�‡�‚ (Mute)'}
+                title={isMuted ? 'माइक अनम्यूट करें (Unmute)' : 'माइक म्यूट करें (Mute)'}
               >
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                <span className="text-[8px] font-bold mt-0.5">{isMuted ? 'म्य�‚�Ÿ' : 'मा�‡�• �šाल�‚'}</span>
+                <span className="text-[8px] font-bold mt-0.5">{isMuted ? 'म्यूट' : 'माइक चालू'}</span>
               </button>
 
               {/* Keypad toggle */}
@@ -897,7 +921,7 @@ export const PhoneBotModal: React.FC = () => {
                 className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
                   showKeypad ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                 }`}
-                title="DTMF �•�€प�ˆड (Keypad)"
+                title="DTMF कीपैड (Keypad)"
               >
                 <Grid className="w-4 h-4" />
                 <span className="text-[8px] mt-0.5">Keypad</span>
@@ -909,32 +933,32 @@ export const PhoneBotModal: React.FC = () => {
                 className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
                   isSpeakerOn ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-amber-950 text-amber-400 border-amber-800'
                 }`}
-                title={isSpeakerOn ? 'स्प�€�•र �šाल�‚' : 'स्प�€�•र ब�‚द'}
+                title={isSpeakerOn ? 'स्पीकर चालू' : 'स्पीकर बंद'}
               >
                 {isSpeakerOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'स्प�€�•र' : 'शा�‚त'}</span>
+                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'स्पीकर' : 'शांत'}</span>
               </button>
 
               {/* End Call Button */}
               <button
                 onClick={endCall}
                 className="w-12 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white flex flex-col items-center justify-center transition cursor-pointer shadow-lg shadow-red-600/30"
-                title="�•�‰ल �•ा�Ÿ�‡�‚ (End Call)"
+                title="कॉल काटें (End Call)"
               >
                 <PhoneOff className="w-5 h-5" />
-                <span className="text-[8px] font-bold mt-0.5">�•�‰ल �•ा�Ÿ�‡�‚</span>
+                <span className="text-[8px] font-bold mt-0.5">कॉल काटें</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: ENDED �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
+        {/* ────────── STATE: ENDED ────────── */}
         {callState === 'ended' && (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2">
             <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-3xl">
-              �📞
+              📞
             </div>
-            <h3 className="text-base font-bold text-white">�•�‰ल समाप्त (Call Ended)</h3>
+            <h3 className="text-base font-bold text-white">कॉल समाप्त (Call Ended)</h3>
             <p className="text-xs text-slate-400">Duration: {formatTimer(callDuration)}</p>
           </div>
         )}
