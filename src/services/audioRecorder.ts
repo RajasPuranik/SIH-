@@ -98,7 +98,6 @@ export class AudioRecorder {
     this.totalSamples = 0;
     this.isRecording = true;
     this.hasSpoken = false;
-    this.isMuted = false;
     this.wasBotSpeaking = false;
     this.botSpeakingStartedAt = 0;
     this.interruptStreak = 0;

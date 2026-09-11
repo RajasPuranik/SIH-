@@ -428,6 +428,9 @@ export const PhoneBotModal: React.FC = () => {
     if (audioRecorderRef.current) {
       audioRecorderRef.current.setMuted(nextMuted);
     }
+    if (nextMuted) {
+      setMicVolume(0);
+    }
   };
 
   // Process user input with ZERO artificial delay
