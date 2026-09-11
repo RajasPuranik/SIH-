@@ -565,280 +565,160 @@ export const PhoneBotModal: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const orbScale = 1 + (micVolume / 100) * 0.3;
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      {/* Mobile Phone Device Container */}
-      <div className="bg-slate-900 text-white w-full max-w-sm rounded-[36px] shadow-2xl overflow-hidden border-4 border-slate-700/80 flex flex-col h-[670px] relative">
-        {/* Phone Top Notch / Header Bar */}
-        <div className="pt-3 pb-2 px-5 flex items-center justify-between text-[11px] text-slate-400 select-none shrink-0 border-b border-slate-800">
-          <span className="font-semibold text-slate-300">1800-180-1551</span>
-          <div className="w-12 h-3 bg-slate-800 rounded-full border border-slate-700" />
-          <div className="flex items-center gap-1 font-mono text-[10px] text-emerald-400">
-            <span>Neural 4G</span>
-            <span>�Ÿ“�</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/95 backdrop-blur-3xl animate-fade-in font-sans">
+      <div className="w-full h-full sm:h-[750px] sm:max-w-[420px] bg-slate-950 sm:rounded-[48px] overflow-hidden flex flex-col relative border border-slate-800/50 shadow-2xl">
+        
+        {/* TOP STATUS BAR */}
+        <div className="absolute top-0 inset-x-0 p-8 flex justify-between items-center z-10">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-emerald-400" />
+            <span className="font-semibold text-white tracking-widest text-sm uppercase">Track AI</span>
           </div>
+          {callState === 'connected' && (
+            <div className="px-3 py-1 bg-slate-900/80 rounded-full text-xs font-medium text-slate-400 border border-slate-800">
+              {formatTimer(callDuration)}
+            </div>
+          )}
         </div>
 
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: INCOMING CALL �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
-        {callState === 'incoming' && (
-          <div className="flex-1 flex flex-col items-center justify-between p-6 text-center">
-            <div className="pt-6 space-y-3">
-              <div className="w-24 h-24 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-5xl shadow-lg animate-pulse">
-                �Ÿ�›️
+        {/* MAIN VISUAL AREA */}
+        <div className="flex-1 flex flex-col items-center justify-center relative p-8 mt-10">
+          
+          {callState === 'incoming' && (
+            <div className="flex flex-col items-center animate-fade-in-up">
+              <div className="w-24 h-24 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-4xl mb-8 animate-pulse">
+                🏛️
               </div>
-              <div>
-                <h3 className="text-xl font-extrabold text-white">APMC Mandi Helpdesk</h3>
-                <p className="text-xs text-emerald-400 font-medium mt-1">KisanTrack Automated Outbound Call</p>
-                <p className="text-xs text-slate-400 mt-1">Toll-Free: 1800-180-1551</p>
-                <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-950 text-emerald-400 text-[10px] font-mono rounded-full border border-emerald-800">
-                  <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-                  <span>Edge-TTS: {activeLangConfig.voice.split('-')[1]}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-800/80 rounded-2xl p-3 border border-slate-700/60 max-w-xs text-xs text-slate-300 leading-relaxed">
-              �🔔 <strong className="text-white">Live Voice Alert:</strong> Slot status verification &amp; priority entry update for your vehicle.
-            </div>
-
-            {/* Accept / Decline Buttons */}
-            <div className="w-full grid grid-cols-2 gap-4 pt-4 pb-2">
-              <button
-                onClick={endCall}
-                className="py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-2xl font-bold text-sm flex flex-col items-center justify-center gap-1 transition cursor-pointer shadow-lg shadow-red-600/30"
+              <h2 className="text-2xl font-light text-white mb-2">Track AI</h2>
+              <p className="text-slate-400 text-center text-sm px-4">Ready to assist with Mandi rates, tokens, and shipments.</p>
+              
+              <button 
+                onClick={() => setCallState('calling')}
+                className="mt-12 w-20 h-20 bg-emerald-600 rounded-full flex flex-col items-center justify-center text-white shadow-[0_0_40px_rgba(5,150,105,0.4)] animate-bounce"
               >
-                <PhoneOff className="w-6 h-6" />
-                <span className="text-xs">Decline</span>
-              </button>
-
-              <button
-                onClick={() => connectCall()}
-                className="py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl font-bold text-sm flex flex-col items-center justify-center gap-1 transition cursor-pointer shadow-lg shadow-emerald-600/30 animate-bounce"
-              >
-                <PhoneCall className="w-6 h-6" />
-                <span className="text-xs">Accept Call</span>
+                <Phone className="w-8 h-8" />
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: DIALING / CALLING �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
-        {callState === 'calling' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-4xl animate-pulse">
-              �ŸŒ�
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">�•िसान व�‰�‡स ब�‰�Ÿ</h3>
-              <p className="text-xs text-slate-400">1800-180-1551 (Toll-Free)</p>
-              <p className="text-xs text-emerald-400 mt-2 font-medium animate-pulse">�•�‰ल मिला�ˆ �œा रह�€ ह�ˆ (Connecting...)</p>
-            </div>
-            <button
-              onClick={endCall}
-              className="mt-6 w-14 h-14 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center text-white shadow-lg transition cursor-pointer"
-            >
-              <PhoneOff className="w-6 h-6" />
-            </button>
-          </div>
-        )}
-
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: CONNECTED CALL �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
-        {callState === 'connected' && (
-          <div className="flex-1 flex flex-col justify-between overflow-hidden">
-            {/* Call Header */}
-            <div className="p-3 bg-slate-800/60 border-b border-slate-700/60 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg font-bold">
-                  �ŸŒ�
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-white">�•िसान फ�‹न ब�‰�Ÿ</span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-emerald-400 font-semibold">{formatTimer(callDuration)}</span>
-                    <span className="text-[9px] text-slate-400 font-mono">�€� {activeLangConfig.voice.split('-')[1]}</span>
-                  </div>
+          {callState === 'calling' && (
+            <div className="flex flex-col items-center animate-fade-in">
+              <div className="w-24 h-24 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center animate-ping">
+                  <Phone className="w-6 h-6 text-blue-400" />
                 </div>
               </div>
+              <h3 className="mt-8 text-xl font-light text-white">Connecting...</h3>
+              <p className="text-slate-500 text-sm mt-2">Establishing secure link</p>
+              
+              {/* Auto connect after 2s simulate */}
+              {setTimeout(() => { if(callStateRef.current === 'calling') connectCall('hi'); }, 2000) && null}
+            </div>
+          )}
 
-              {/* Bot Speaking Indicator & Sound Waves */}
-              <div
-                className={`flex items-center gap-1.5 h-6 px-2 rounded-lg border transition ${
-                  isBotSpeaking
-                    ? 'bg-amber-950/80 border-amber-500/80'
-                    : isListening
-                    ? 'bg-emerald-950/80 border-emerald-500/80'
-                    : 'bg-slate-800 border-slate-700'
-                }`}
-              >
-                {[30, 80, 50, 95, 40, 75, 60].map((h, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      height: isBotSpeaking
-                        ? `${h}%`
-                        : isListening
-                        ? `${Math.max(20, Math.min(100, (micVolume * h) / 35))}%`
-                        : '20%',
-                    }}
-                    className={`w-0.5 rounded-full transition-all duration-100 ${
-                      isBotSpeaking ? 'bg-amber-400 animate-pulse' : isListening ? 'bg-emerald-400' : 'bg-slate-500'
-                    }`}
-                  />
-                ))}
-                <span className="text-[9px] font-mono font-bold">
-                  {isBotSpeaking ? (
-                    <span className="text-amber-300">ब�‹ल रहा ह�ˆ</span>
-                  ) : isListening ? (
-                    <span className="text-emerald-300">सुन रह�‡ ह�ˆ�‚</span>
-                  ) : (
-                    <span className="text-slate-400">त�ˆयार</span>
+          {callState === 'connected' && (
+            <div className="flex flex-col items-center w-full h-full justify-center">
+              
+              {/* THE ORB */}
+              <div className="relative flex items-center justify-center w-48 h-48 mb-12">
+                {/* Outer Glow */}
+                <div 
+                  className={`absolute inset-0 rounded-full blur-3xl transition-all duration-300 ${
+                    isProcessingAudio ? 'bg-purple-600/40' :
+                    isBotSpeaking ? 'bg-blue-500/40' : 
+                    isUserSpeaking ? 'bg-emerald-500/40' : 'bg-slate-700/20'
+                  }`}
+                  style={{ transform: `scale(${orbScale * 1.2})` }}
+                />
+                
+                {/* Core Sphere */}
+                <div 
+                  className={`relative w-36 h-36 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500 ${
+                    isProcessingAudio ? 'bg-gradient-to-tr from-purple-700 to-pink-500 animate-pulse' :
+                    isBotSpeaking ? 'bg-gradient-to-tr from-blue-600 via-cyan-500 to-blue-400' : 
+                    isUserSpeaking ? 'bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-300' : 
+                    'bg-gradient-to-tr from-slate-800 to-slate-700'
+                  }`}
+                  style={{ transform: `scale(${orbScale})` }}
+                >
+                  <div className="absolute inset-0 bg-white/10 blur-xl mix-blend-overlay rounded-full" />
+                  
+                  {/* Subtle inner animated ring for speaking */}
+                  {isBotSpeaking && (
+                    <div className="absolute inset-0 rounded-full border-[6px] border-white/20 border-t-white/60 animate-spin-slow" />
                   )}
-                </span>
+                  {isUserSpeaking && (
+                    <div className="absolute inset-0 rounded-full border-[4px] border-emerald-200/30 scale-90" />
+                  )}
+                </div>
+              </div>
+
+              {/* TRANSCRIPT AREA */}
+              <div className="h-32 w-full flex flex-col items-center justify-start text-center px-6">
+                {currentSpeechTranscript ? (
+                  <p className="text-xl font-light text-slate-300 animate-fade-in-up">
+                    "{currentSpeechTranscript}"
+                  </p>
+                ) : isProcessingAudio ? (
+                  <p className="text-lg font-light text-purple-400 animate-pulse">Thinking...</p>
+                ) : isBotSpeaking ? (
+                   <p className="text-xl font-light text-white animate-fade-in-up">
+                     {(lastMessage?.text?.length || 0) > 90 ? lastMessage?.text.substring(0, 90) + '...' : lastMessage?.text}
+                   </p>
+                ) : (
+                  <p className="text-lg font-light text-slate-500">Listening...</p>
+                )}
               </div>
             </div>
+          )}
 
-            {/* Conversation Messages Container */}
-            <div ref={chatScrollRef} className="flex-1 p-3 overflow-y-auto space-y-2.5 text-xs">
-              {messages.map((msg, index) => (
-                <div key={index} className={`flex flex-col ${msg.sender === 'farmer' ? 'items-end' : 'items-start'}`}>
-                  <div
-                    className={`p-3 rounded-2xl max-w-[88%] leading-relaxed ${
-                      msg.sender === 'farmer'
-                        ? 'bg-emerald-600 text-white rounded-tr-none'
-                        : 'bg-slate-800 text-slate-200 border border-slate-700/80 rounded-tl-none'
-                    }`}
+          {callState === 'ended' && (
+            <div className="flex flex-col items-center animate-fade-in-up">
+              <div className="w-20 h-20 rounded-full bg-slate-900 flex items-center justify-center text-3xl mb-6">
+                📞
+              </div>
+              <h3 className="text-xl font-light text-white mb-2">Call Ended</h3>
+              <p className="text-slate-500">Duration: {formatTimer(callDuration)}</p>
+            </div>
+          )}
+
+        </div>
+
+        {/* BOTTOM CONTROLS */}
+        {callState === 'connected' && (
+          <div className="w-full flex flex-col bg-slate-900/80 backdrop-blur-lg border-t border-slate-800/50 pb-8 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+            
+            {/* Quick Actions (only show if keyboard isn't open and bot gave some) */}
+            {!showKeypad && lastMessage?.quickActions && (
+              <div className="flex gap-2 overflow-x-auto p-4 no-scrollbar">
+                {lastMessage.quickActions.map((action, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleUserUtterance(action.action)}
+                    className="shrink-0 px-4 py-2.5 bg-slate-800/80 hover:bg-emerald-900/40 text-emerald-100 text-sm font-medium rounded-2xl border border-slate-700/50 transition whitespace-nowrap"
                   >
-                    <div className="whitespace-pre-line text-[11px]">{msg.text}</div>
-
-                    {/* Quick action buttons attached to bot reply */}
-                    {msg.quickActions && msg.quickActions.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex flex-wrap gap-1.5">
-                        {msg.quickActions.map((qa, i) => (
-                          <button
-                            key={i}
-                            onClick={() => handleUserUtterance(qa.action)}
-                            className="px-2 py-1 bg-slate-700/70 hover:bg-emerald-700 text-[10px] text-emerald-300 hover:text-white rounded-lg transition cursor-pointer border border-slate-600/50"
-                          >
-                            {qa.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[9px] text-slate-500 mt-0.5 px-1">{msg.time}</span>
-                </div>
-              ))}
-
-              {/* Persistent Quick Options Chips */}
-              <div className="pt-2 border-t border-slate-800/80">
-                <div className="text-[9px] text-slate-400 font-bold mb-1.5 flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-                  <span>Quick Questions:</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { label: '�ŸŒ� �†�œ �•ा भाव', q: '�†�œ �•ा म�‚ड�€ भाव �•्या ह�ˆ' },
-                    { label: '�Ÿ“‹ म�‡रा �Ÿ�‹�•न', q: 'म�‡रा �Ÿ�‹�•न न�‚बर �”र स्थिति बताए�‚' },
-                    { label: '�Ÿ�›️ म�‚ड�€ भ�€ड़', q: 'म�‚ड�€ म�‡�‚ �…भ�€ भ�€ड़ �”र �•तार �•ितन�€ ह�ˆ' },
-                    { label: '�ŸŒ�️ म�Œसम', q: '�†�œ �•ा म�Œसम �•�ˆसा रह�‡�—ा' },
-                    { label: '�Ÿ“� नया �Ÿ�‹�•न', q: 'नया स्ल�‰�Ÿ बु�• �•रना ह�ˆ' },
-                  ].map((chip, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleUserUtterance(chip.q)}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-700 active:scale-95 text-slate-200 hover:text-white rounded-xl text-[10px] font-medium border border-slate-700/80 transition cursor-pointer shadow-xs"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status or error banner (only for actual permission blocks) */}
-              {micStatusMsg && (
-                <div className="p-2 bg-amber-950/80 border border-amber-500/50 rounded-xl text-[10px] text-amber-200 text-center flex items-center justify-center gap-1.5 animate-fade-in">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>{micStatusMsg}</span>
-                </div>
-              )}
-            </div>
-
-            {/* �”€�”€�”€ BOT SPEAKING PILL (Clean & Informational, NO Interrupt button) �”€�”€�”€ */}
-            {isBotSpeaking && (
-              <div className="mx-3 my-1 p-2 bg-slate-800/90 text-emerald-300 rounded-2xl border border-slate-700 shadow-md flex items-center justify-center gap-2 shrink-0 animate-fade-in">
-                <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
-                <span className="text-[11px] font-semibold text-slate-200">
-                  ब�‰�Ÿ ब�‹ल रहा ह�ˆ... ({activeLangConfig.nativeName})
-                </span>
-              </div>
-            )}
-
-            {/* �”€�”€�”€ LIVE MIC LISTENING BANNER (WITH REAL-TIME EQUALIZER) �”€�”€�”€ */}
-            {isListening && !isBotSpeaking && (
-              <div className="mx-3 my-1 p-2.5 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 border border-emerald-500/60 rounded-2xl shadow-lg flex items-center justify-between gap-2 shrink-0 animate-fade-in">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative flex items-center justify-center w-7 h-7">
-                    <span className="absolute w-7 h-7 rounded-full bg-emerald-500/30 animate-ping" />
-                    <Mic className="w-4 h-4 text-emerald-300 relative z-10 animate-pulse" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-bold text-emerald-200">
-                      {isUserSpeaking ? '�🎙️ �†प�•�€ �†वा�œ़ �† रह�€ ह�ˆ...' : '�🎙️ ब�‹लिए, हम सुन रह�‡ ह�ˆ�‚...'}
-                    </div>
-                    <div className="text-[9px] text-emerald-400 font-medium">
-                      ({activeLangConfig.nativeName} �€” ब�‹ल�•र 1-2 स�‡�•�‚ड रु�•�‡�‚)
-                    </div>
-                  </div>
-                </div>
-
-                {/* Real-time Dynamic Voice Equalizer Bars */}
-                <div className="flex items-center gap-1 h-6 px-2.5 bg-slate-900/80 rounded-lg border border-emerald-700/50">
-                  {[20, 50, 85, 100, 75, 45, 60].map((h, i) => {
-                    const barHeight = Math.max(15, Math.min(100, (micVolume * h) / 35));
-                    return (
-                      <span
-                        key={i}
-                        style={{ height: `${barHeight}%` }}
-                        className="w-1 bg-emerald-400 rounded-full transition-all duration-75"
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* �”€�”€�”€ PROCESSING VOICE INDICATOR �”€�”€�”€ */}
-            {isProcessingAudio && (
-              <div className="mx-3 my-1 p-2 bg-slate-800/90 text-amber-300 rounded-2xl border border-amber-500/40 shadow-md flex items-center justify-center gap-2 shrink-0 animate-pulse">
-                <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
-                <span className="text-[11px] font-bold text-amber-200">
-                  �†प�•�€ बात समझ रह�‡ ह�ˆ�‚... (Processing voice...)
-                </span>
-              </div>
-            )}
-
-            {/* �”€�”€�”€ LIVE SPEECH TRANSCRIPT PREVIEW �”€�”€�”€ */}
-            {currentSpeechTranscript && (
-              <div className="mx-3 my-1 p-2 bg-emerald-800/90 text-white rounded-xl text-xs font-semibold italic text-center animate-fade-in shrink-0 border border-emerald-400/60 shadow-md">
-                "{currentSpeechTranscript}"
+                    {action.label}
+                  </button>
+                ))}
               </div>
             )}
 
             {/* DTMF Keypad Drawer */}
             {showKeypad && (
-              <div className="p-3 bg-slate-950/95 border-t border-slate-800 animate-slide-up shrink-0">
-                <div className="text-[10px] text-slate-400 text-center mb-2 font-mono">
-                  Language: 1=English | 2=Hindi | 3=Marathi
+              <div className="p-4 animate-slide-up bg-slate-900/50 border-b border-slate-800/50">
+                <div className="text-xs text-slate-400 text-center mb-4 font-mono tracking-widest">
+                  LANG: 1=ENG | 2=HIN | 3=MAR
                 </div>
-                <div className="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
+                <div className="grid grid-cols-3 gap-3 max-w-[260px] mx-auto">
                   {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((k) => (
                     <button
                       key={k}
                       onClick={() => handleKeypadPress(k)}
-                      className="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-emerald-600 text-white font-bold text-sm transition cursor-pointer border border-slate-700/50"
+                      className="h-12 rounded-2xl bg-slate-800/80 hover:bg-slate-700 active:bg-emerald-600 text-white font-medium text-lg transition cursor-pointer border border-slate-700/50"
                     >
                       {k}
                     </button>
@@ -847,97 +727,40 @@ export const PhoneBotModal: React.FC = () => {
               </div>
             )}
 
-            {/* Quick Text Input */}
-            <div className="px-3 py-2 bg-slate-900 border-t border-slate-800/80 flex gap-2 shrink-0">
-              <input
-                type="text"
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && textInput.trim()) {
-                    handleUserUtterance(textInput);
-                    setTextInput('');
-                  }
-                }}
-                placeholder="ब�‹ल�‡�‚ या लि�–�‡�‚ (Speak or type)..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-              <button
-                onClick={() => {
-                  if (textInput.trim()) {
-                    handleUserUtterance(textInput);
-                    setTextInput('');
-                  }
-                }}
-                className="px-3 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-white text-xs font-bold transition cursor-pointer"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Call Action Bar (Mute, Keypad, Speaker, Hangup) */}
-            <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-around shrink-0">
-              {/* Mute / Unmute Button */}
-              <button
-                onClick={toggleMute}
-                className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer shadow-md ${
-                  isMuted
-                    ? 'bg-amber-600 text-white animate-pulse ring-2 ring-amber-400'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                }`}
-                title={isMuted ? 'मा�‡�• �…नम्य�‚�Ÿ �•र�‡�‚ (Unmute)' : 'मा�‡�• म्य�‚�Ÿ �•र�‡�‚ (Mute)'}
-              >
-                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                <span className="text-[8px] font-bold mt-0.5">{isMuted ? 'म्य�‚�Ÿ' : 'मा�‡�• �šाल�‚'}</span>
-              </button>
-
-              {/* Keypad toggle */}
+            {/* Action Bar */}
+            <div className="px-8 py-4 flex items-center justify-between">
+              
               <button
                 onClick={() => setShowKeypad(!showKeypad)}
-                className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
-                  showKeypad ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition cursor-pointer ${
+                  showKeypad ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
                 }`}
-                title="DTMF �•�€प�ˆड (Keypad)"
               >
-                <Grid className="w-4 h-4" />
-                <span className="text-[8px] mt-0.5">Keypad</span>
+                <Grid className="w-5 h-5" />
               </button>
 
-              {/* Speaker Toggle */}
               <button
-                onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer border ${
-                  isSpeakerOn ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-amber-950 text-amber-400 border-amber-800'
+                onClick={toggleMute}
+                className={`w-16 h-16 rounded-full flex items-center justify-center transition cursor-pointer shadow-xl ${
+                  isMuted
+                    ? 'bg-amber-600/20 text-amber-500 border border-amber-500/30'
+                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
                 }`}
-                title={isSpeakerOn ? 'स्प�€�•र �šाल�‚' : 'स्प�€�•र ब�‚द'}
               >
-                {isSpeakerOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                <span className="text-[8px] mt-0.5">{isSpeakerOn ? 'स्प�€�•र' : 'शा�‚त'}</span>
+                {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
               </button>
 
-              {/* End Call Button */}
               <button
                 onClick={endCall}
-                className="w-12 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white flex flex-col items-center justify-center transition cursor-pointer shadow-lg shadow-red-600/30"
-                title="�•�‰ल �•ा�Ÿ�‡�‚ (End Call)"
+                className="w-12 h-12 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition cursor-pointer border border-red-500/20"
               >
                 <PhoneOff className="w-5 h-5" />
-                <span className="text-[8px] font-bold mt-0.5">�•�‰ल �•ा�Ÿ�‡�‚</span>
               </button>
+
             </div>
           </div>
         )}
 
-        {/* �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ STATE: ENDED �”€�”€�”€�”€�”€�”€�”€�”€�”€�”€ */}
-        {callState === 'ended' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2">
-            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-3xl">
-              �📞
-            </div>
-            <h3 className="text-base font-bold text-white">�•�‰ल समाप्त (Call Ended)</h3>
-            <p className="text-xs text-slate-400">Duration: {formatTimer(callDuration)}</p>
-          </div>
-        )}
       </div>
     </div>
   );
