@@ -53,6 +53,7 @@ export const PhoneBotModal: React.FC = () => {
   }, [callState]);
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [showKeypad, setShowKeypad] = useState(false);
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
@@ -130,7 +131,7 @@ export const PhoneBotModal: React.FC = () => {
     setCallState('connected');
     playFeedbackTone('success');
 
-    const farmerFirstName = currentUser?.name?.split(' ')[0] || '�•िसान भा�ˆ';
+    const farmerFirstName = currentUser?.name?.split(' ')[0] || 'किसान भाई';
     const activeBooking = bookings[0];
 
     const greeting = getInitialGreeting(
@@ -145,9 +146,9 @@ export const PhoneBotModal: React.FC = () => {
       text: greeting.displayText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       quickActions: [
-        { label: '�ŸŒ� भाव / Rates', action: 'भाव' },
-        { label: '�Ÿ“‹ �Ÿ�‹�•न / Token', action: '�Ÿ�‹�•न स्थिति' },
-        { label: '�Ÿ�›️ म�‚ड�€ भ�€ड़ / Queue', action: 'म�‚ड�€ भ�€ड़' },
+        { label: '🌾 भाव / Rates', action: 'भाव' },
+        { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+        { label: '🏛️ भीड़ / Queue', action: 'मंडी भीड़' },
       ],
     };
 
@@ -160,7 +161,7 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // �”€�”€�”€ NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) �”€�”€�”€
+  // -”€-”€-”€ NATURAL TEXT-TO-SPEECH (Edge-TTS with Fallback) -”€-”€-”€
   const speakText = (text: string, currentLang: SupportedBotLang = botLang) => {
     if (!isSpeakerOn) {
       if (!isMuted && callStateRef.current === 'connected') {
@@ -282,7 +283,7 @@ export const PhoneBotModal: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  // �”€�”€�”€ INSTANT BOT INTERRUPTION �”€�”€�”€
+  // -”€-”€-”€ INSTANT BOT INTERRUPTION -”€-”€-”€
   const interruptBot = () => {
     if (audioElementRef.current) {
       try {
@@ -309,13 +310,13 @@ export const PhoneBotModal: React.FC = () => {
     }
   };
 
-  // �”€�”€�”€ ROBUST FULL-DUPLEX CONTINUOUS SPEECH-TO-TEXT �”€�”€�”€
+  // -”€-”€-”€ ROBUST FULL-DUPLEX CONTINUOUS SPEECH-TO-TEXT -”€-”€-”€
   const startListening = async (lang: SupportedBotLang = botLang) => {
     if (isStartingRef.current) return;
     if (audioRecorderRef.current) {
-      audioRecorderRef.current.setMuted(false);
+      audioRecorderRef.current.setMuted(isMutedRef.current);
       audioRecorderRef.current.resetBuffer();
-      setIsListening(true);
+      setIsListening(!isMutedRef.current);
       return;
     }
 
@@ -330,16 +331,8 @@ export const PhoneBotModal: React.FC = () => {
         sampleRate: 16000,
         silenceDurationMs: 650,
         speechThreshold: 0.010,
-                isBotSpeaking: () => isBotSpeakingRef.current,
+        isBotSpeaking: () => isBotSpeakingRef.current,
         onVoiceInterrupt: () => {
-          // Whenever ANY word is spoken by user while bot is speaking, instantly stop the bot!
-          if (audioElementRef.current) {
-            try {
-              audioElementRef.current.pause();
-              audioElementRef.current.currentTime = 0;
-            } catch {}
-            audioElementRef.current = null;
-          }
           if ('speechSynthesis' in window) {
             try {
               window.speechSynthesis.cancel();
@@ -360,6 +353,7 @@ export const PhoneBotModal: React.FC = () => {
           finishAndTranscribe(lang);
         },
       });
+      recorder.setMuted(isMutedRef.current);
 
       audioRecorderRef.current = recorder;
       await recorder.start();
@@ -370,7 +364,7 @@ export const PhoneBotModal: React.FC = () => {
       isStartingRef.current = false;
       setIsListening(false);
       if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        setMicStatusMsg('मा�‡�• �…नुमति �…स्व�€�•�ƒत (Microphone blocked). ब्रा�‰�œ़र स�‡�Ÿि�‚�—्स म�‡�‚ �…नुमति द�‡�‚.');
+        setMicStatusMsg('मा-‡-• -…नुमति -…स्व-€-•-ƒत (Microphone blocked). ब्रा-‰-œ़र स-‡-Ÿि-‚-—्स म-‡-‚ -…नुमति द-‡-‚.');
       }
     }
   };
@@ -430,6 +424,7 @@ export const PhoneBotModal: React.FC = () => {
   const toggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
+    isMutedRef.current = nextMuted;
     if (audioRecorderRef.current) {
       audioRecorderRef.current.setMuted(nextMuted);
     }
@@ -496,7 +491,7 @@ export const PhoneBotModal: React.FC = () => {
     playFeedbackTone('ping');
     stopListening();
     if (callState === 'connected') {
-      const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || '�•िसान भा�ˆ');
+      const greeting = getInitialGreeting(newLang, currentUser?.name?.split(' ')[0] || '-•िसान भा-ˆ');
       setMessages((prev) => [
         ...prev,
         {
@@ -504,9 +499,10 @@ export const PhoneBotModal: React.FC = () => {
           text: greeting.displayText,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           quickActions: [
-            { label: '�ŸŒ� भाव / Rates', action: 'भाव' },
-            { label: '�Ÿ“‹ �Ÿ�‹�•न / Token', action: '�Ÿ�‹�•न स्थिति' },
-          ],
+        { label: '🌾 भाव / Rates', action: 'भाव' },
+        { label: '📋 टोकन / Token', action: 'टोकन स्थिति' },
+        { label: '🏛️ भीड़ / Queue', action: 'मंडी भीड़' },
+      ],
         },
       ]);
       speakText(greeting.spokenText, newLang);
@@ -597,7 +593,7 @@ export const PhoneBotModal: React.FC = () => {
               <p className="text-slate-400 text-center text-sm px-4">Ready to assist with Mandi rates, tokens, and shipments.</p>
               
               <button 
-                onClick={() => setCallState('calling')}
+                onClick={() => setCallState('lang_select')}
                 className="mt-12 w-20 h-20 bg-emerald-600 rounded-full flex flex-col items-center justify-center text-white shadow-[0_0_40px_rgba(5,150,105,0.4)] animate-bounce"
               >
                 <Phone className="w-8 h-8" />
@@ -605,20 +601,41 @@ export const PhoneBotModal: React.FC = () => {
             </div>
           )}
 
-          {callState === 'calling' && (
-            <div className="flex flex-col items-center animate-fade-in">
-              <div className="w-24 h-24 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center animate-ping">
-                  <Phone className="w-6 h-6 text-blue-400" />
-                </div>
+          
+          {callState === 'lang_select' && (
+            <div className="flex flex-col items-center w-full animate-fade-in px-4">
+              <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mb-6">
+                <Globe className="w-10 h-10 text-blue-400" />
               </div>
-              <h3 className="mt-8 text-xl font-light text-white">Connecting...</h3>
-              <p className="text-slate-500 text-sm mt-2">Establishing secure link</p>
+              <h3 className="text-2xl font-light text-white mb-2">Select Language</h3>
+              <p className="text-slate-400 mb-8">भाषा चुनें / भाषा निवडा</p>
               
-              {/* Auto connect after 2s simulate */}
-              {setTimeout(() => { if(callStateRef.current === 'calling') connectCall('hi'); }, 2000) && null}
+              <div className="w-full space-y-4 max-w-[280px]">
+                <button 
+                  onClick={() => { setBotLang('en'); connectCall('en'); }} 
+                  className="w-full py-4 bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 rounded-2xl flex items-center justify-center gap-3 transition-all cursor-pointer group"
+                >
+                  <span className="text-xl">🇬🇧</span>
+                  <span className="text-white font-medium text-lg tracking-wide group-hover:text-white">English</span>
+                </button>
+                <button 
+                  onClick={() => { setBotLang('hi'); connectCall('hi'); }} 
+                  className="w-full py-4 bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 rounded-2xl flex items-center justify-center gap-3 transition-all cursor-pointer group"
+                >
+                  <span className="text-xl">🇮🇳</span>
+                  <span className="text-white font-medium text-lg tracking-wide group-hover:text-white">हिन्दी</span>
+                </button>
+                <button 
+                  onClick={() => { setBotLang('mr'); connectCall('mr'); }} 
+                  className="w-full py-4 bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 rounded-2xl flex items-center justify-center gap-3 transition-all cursor-pointer group"
+                >
+                  <span className="text-xl">🚩</span>
+                  <span className="text-white font-medium text-lg tracking-wide group-hover:text-white">मराठी</span>
+                </button>
+              </div>
             </div>
           )}
+
 
           {callState === 'connected' && (
             <div className="flex flex-col items-center w-full h-full justify-center">
