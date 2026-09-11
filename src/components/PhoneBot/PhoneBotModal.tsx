@@ -45,6 +45,9 @@ export const PhoneBotModal: React.FC = () => {
   }, [callState]);
 
   const [callDuration, setCallDuration] = useState(0);
+  const [botMode, setBotMode] = useState<'ivr' | 'ai'>('ivr');
+  const [ivrNode, setIvrNode] = useState('main');
+  const [showKeypad, setShowKeypad] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
@@ -101,9 +104,57 @@ export const PhoneBotModal: React.FC = () => {
   }, [messages]);
 
   const startIvr = () => {
-    setCallState('ivr');
+    setCallState('connected');
+    setBotMode('ivr');
+    setIvrNode('main');
+    setShowKeypad(true);
     playFeedbackTone('success');
-    speakText("Welcome to Kisan Track. Hindi ke liye 1 dabaye. For English press 2. Marathi sathi 3 daba.", 'en');
+    speakText("Welcome to Kisan Track. Press 1 to book a Mandi slot. Press 2 to check your token status. Press 9 to speak to our AI voice assistant.");
+  };
+
+  const handleKeypadPress = (digit: string) => {
+    playFeedbackTone('ping');
+    interruptBot();
+    
+    if (botMode === 'ai') return;
+    
+    if (ivrNode === 'main') {
+      if (digit === '1') {
+        setIvrNode('book_crop');
+        speakText("Slot booking. Press 1 to sell Wheat. Press 2 to sell Soybean. Press 0 for main menu.");
+      } else if (digit === '2') {
+        setIvrNode('status');
+        speakText("Your active token is currently arriving at Gate 3. Wait time is 15 minutes. Press 0 to return to main menu.");
+      } else if (digit === '9') {
+        setBotMode('ai');
+        setShowKeypad(false);
+        speakText("Connecting to Kisan Track AI Voice Assistant. Please ask your question.");
+      } else {
+        speakText("Invalid input. Press 1 to book a slot. Press 2 for status. Press 9 for AI.");
+      }
+    } else if (ivrNode === 'book_crop') {
+      if (digit === '1' || digit === '2') {
+        setIvrNode('book_qty');
+        speakText("Press 1 for 50 Quintals. Press 2 for 100 Quintals.");
+      } else if (digit === '0') {
+        startIvr();
+      } else {
+        speakText("Invalid input. Press 1 for Wheat, 2 for Soybean, or 0 for main menu.");
+      }
+    } else if (ivrNode === 'book_qty') {
+      if (digit === '1' || digit === '2') {
+        setIvrNode('confirm');
+        speakText("Mandi slot booked successfully. You will receive an SMS shortly. Press 0 for main menu.");
+      } else if (digit === '0') {
+        startIvr();
+      } else {
+        speakText("Press 1 for 50 Quintals, 2 for 100 Quintals, or 0 to go back.");
+      }
+    } else if (ivrNode === 'status' || ivrNode === 'confirm') {
+      if (digit === '0') {
+        startIvr();
+      }
+    }
   };
 
   const connectCall = (targetLang?: SupportedBotLang) => {
@@ -494,7 +545,8 @@ export const PhoneBotModal: React.FC = () => {
             </div>
 
             {/* Chat Area */}
-            <div ref={chatScrollRef} className="flex-1 p-6 overflow-y-auto space-y-6">
+            {botMode === 'ai' && (
+              <div ref={chatScrollRef} className="flex-1 p-6 overflow-y-auto space-y-6">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex w-full ${msg.sender === 'farmer' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex flex-col ${msg.sender === 'farmer' ? 'items-end max-w-[75%]' : 'items-start max-w-[85%]'}`}>
@@ -520,6 +572,32 @@ export const PhoneBotModal: React.FC = () => {
                 </div>
               ))}
             </div>
+            )}
+            
+            {/* IVR Keypad Area */}
+            {botMode === 'ivr' && (
+              <div className="flex-1 flex flex-col bg-slate-50 items-center justify-center p-6 relative overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none">
+                  <PhoneCall className="w-96 h-96" />
+                </div>
+                
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 shadow-inner border-[4px] border-white z-10">
+                  <Bot className="w-10 h-10 text-emerald-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 z-10 text-center uppercase tracking-wider mb-2">Automated Menu</h3>
+                <p className="text-emerald-600 font-medium z-10 text-center animate-pulse mb-8">
+                  {isBotSpeaking ? "Speaking..." : "Awaiting Input..."}
+                </p>
+
+                <div className="grid grid-cols-3 gap-4 max-w-[260px] mx-auto z-10">
+                  {['1','2','3','4','5','6','7','8','9','*','0','#'].map(d => (
+                    <button key={d} onClick={() => handleKeypadPress(d)} className="h-16 w-16 bg-white rounded-full shadow-sm font-bold text-2xl text-slate-700 hover:bg-slate-100 transition-all active:scale-90 border border-slate-200 flex items-center justify-center cursor-pointer">
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Controls Panel */}
             <div className="bg-white border-t border-slate-200 p-4 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] flex flex-col gap-4">
