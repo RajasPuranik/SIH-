@@ -120,12 +120,12 @@ export const processBotQuery = (
           displayText: language === 'hi' ? "❓ कृपया फसल का नाम बताएं" : language === 'mr' ? "❓ कृपया पिकाचे नाव सांगा" : "❓ Please state the crop name",
           newBookingContext: bookingContext,
           quickActions: [
-            { label: '🌾 Wheat', action: 'wheat' },
-            { label: '🌿 Mustard', action: 'mustard' },
-            { label: '🌱 Soybean', action: 'soybean' },
-            { label: '🌰 Gram', action: 'gram' },
-            { label: '☁️ Cotton', action: 'cotton' },
-            { label: '🌾 Paddy', action: 'paddy' },
+            { label: language === 'hi' ? '🌾 गेहूँ' : language === 'mr' ? '🌾 गहू' : '🌾 Wheat', action: 'wheat' },
+            { label: language === 'hi' ? '🌿 सरसों' : language === 'mr' ? '🌿 मोहरी' : '🌿 Mustard', action: 'mustard' },
+            { label: language === 'hi' ? '🌱 सोयाबीन' : language === 'mr' ? '🌱 सोयाबीन' : '🌱 Soybean', action: 'soybean' },
+            { label: language === 'hi' ? '🌰 चना' : language === 'mr' ? '🌰 हरभरा' : '🌰 Gram', action: 'gram' },
+            { label: language === 'hi' ? '☁️ कपास' : language === 'mr' ? '☁️ कापूस' : '☁️ Cotton', action: 'cotton' },
+            { label: language === 'hi' ? '🌾 धान' : language === 'mr' ? '🌾 धान' : '🌾 Paddy', action: 'paddy' },
           ]
         };
       }
@@ -135,10 +135,10 @@ export const processBotQuery = (
         displayText: language === 'hi' ? `⚖️ ${crop.hindiName} की मात्रा बताएं (क्विंटल में)` : language === 'mr' ? `⚖️ ${crop.name} किती क्विंटल?` : `⚖️ Quantity of ${crop.name} (in Qtl)?`,
         newBookingContext: { ...bookingContext, step: 'quantity', crop: crop.name },
         quickActions: [
-          { label: '10 Qtl', action: '10' },
-          { label: '25 Qtl', action: '25' },
-          { label: '50 Qtl', action: '50' },
-          { label: '100 Qtl', action: '100' },
+          { label: language === 'hi' ? '10 क्विंटल' : language === 'mr' ? '10 क्विंटल' : '10 Qtl', action: '10' },
+          { label: language === 'hi' ? '25 क्विंटल' : language === 'mr' ? '25 क्विंटल' : '25 Qtl', action: '25' },
+          { label: language === 'hi' ? '50 क्विंटल' : language === 'mr' ? '50 क्विंटल' : '50 Qtl', action: '50' },
+          { label: language === 'hi' ? '100 क्विंटल' : language === 'mr' ? '100 क्विंटल' : '100 Qtl', action: '100' },
         ]
       };
     }
@@ -151,9 +151,9 @@ export const processBotQuery = (
         displayText: language === 'hi' ? "🚜 वाहन का प्रकार बताएं" : language === 'mr' ? "🚜 वाहनाचा प्रकार सांगा" : "🚜 Vehicle type?",
         newBookingContext: { ...bookingContext, step: 'vehicle', quantity: qty },
         quickActions: [
-          { label: '🚜 Tractor', action: 'Tractor' },
-          { label: '🚚 Truck', action: 'Truck' },
-          { label: '🛻 Pickup', action: 'Pickup' },
+          { label: language === 'hi' ? '🚜 ट्रैक्टर' : language === 'mr' ? '🚜 ट्रॅक्टर' : '🚜 Tractor', action: 'Tractor' },
+          { label: language === 'hi' ? '🚚 ट्रक' : language === 'mr' ? '🚚 ट्रक' : '🚚 Truck', action: 'Truck' },
+          { label: language === 'hi' ? '🛻 पिकअप' : language === 'mr' ? '🛻 पिकअप' : '🛻 Pickup', action: 'Pickup' },
         ]
       };
     }
@@ -168,10 +168,7 @@ export const processBotQuery = (
         spokenText: language === 'hi' ? "वाहन का रजिस्ट्रेशन नंबर बताएं? (जैसे MP-09-AB-1234)" : language === 'mr' ? "वाहनाचा नोंदणी क्रमांक सांगा?" : "Please provide the Vehicle Registration Number (e.g. MP-09-AB-1234).",
         displayText: language === 'hi' ? "🔢 वाहन का नंबर (VRN) दर्ज करें" : language === 'mr' ? "🔢 वाहनाचा नंबर (VRN) प्रविष्ट करा" : "🔢 Enter Vehicle Registration Number",
         newBookingContext: { ...bookingContext, step: 'vehicleNumber', vehicle: vehicleType },
-        quickActions: [
-          { label: 'MP-09-XX-0000', action: 'MP-09-XX-0000' },
-          { label: 'MH-14-AB-1234', action: 'MH-14-AB-1234' },
-        ]
+        quickActions: []
       };
     }
 
@@ -190,10 +187,10 @@ export const processBotQuery = (
         displayText: language === 'hi' ? "🕒 मंडी पहुँचने का समय?" : language === 'mr' ? "🕒 मंडीत पोहोचण्याची वेळ?" : "🕒 Estimated Arrival Time?",
         newBookingContext: { ...bookingContext, step: 'time', vehicleNumber: vrn },
         quickActions: [
-          { label: '08:30 AM - 10:00 AM', action: '08:30 AM - 10:00 AM' },
-          { label: '10:15 AM - 11:45 AM', action: '10:15 AM - 11:45 AM' },
-          { label: '12:00 PM - 01:30 PM', action: '12:00 PM - 01:30 PM' },
-          { label: '02:30 PM - 04:00 PM', action: '02:30 PM - 04:00 PM' },
+          { label: language === 'hi' ? '08:30 सुबह' : language === 'mr' ? '08:30 सकाळ' : '08:30 AM', action: '08:30 AM - 10:00 AM' },
+          { label: language === 'hi' ? '10:15 सुबह' : language === 'mr' ? '10:15 सकाळ' : '10:15 AM', action: '10:15 AM - 11:45 AM' },
+          { label: language === 'hi' ? '12:00 दोपहर' : language === 'mr' ? '12:00 दुपार' : '12:00 PM', action: '12:00 PM - 01:30 PM' },
+          { label: language === 'hi' ? '02:30 दोपहर' : language === 'mr' ? '02:30 दुपार' : '02:30 PM', action: '02:30 PM - 04:00 PM' },
         ]
       };
     }
@@ -248,12 +245,12 @@ export const processBotQuery = (
       displayText: language === 'hi' ? "🌾 आप कौन सी फसल लाना चाहते हैं?" : language === 'mr' ? "🌾 तुम्ही कोणते पीक आणणार?" : "🌾 Which crop do you want to bring?",
       newBookingContext: { step: 'crop' },
       quickActions: [
-            { label: '🌾 Wheat', action: 'wheat' },
-            { label: '🌿 Mustard', action: 'mustard' },
-            { label: '🌱 Soybean', action: 'soybean' },
-            { label: '🌰 Gram', action: 'gram' },
-            { label: '☁️ Cotton', action: 'cotton' },
-            { label: '🌾 Paddy', action: 'paddy' },
+            { label: language === 'hi' ? '🌾 गेहूँ' : language === 'mr' ? '🌾 गहू' : '🌾 Wheat', action: 'wheat' },
+            { label: language === 'hi' ? '🌿 सरसों' : language === 'mr' ? '🌿 मोहरी' : '🌿 Mustard', action: 'mustard' },
+            { label: language === 'hi' ? '🌱 सोयाबीन' : language === 'mr' ? '🌱 सोयाबीन' : '🌱 Soybean', action: 'soybean' },
+            { label: language === 'hi' ? '🌰 चना' : language === 'mr' ? '🌰 हरभरा' : '🌰 Gram', action: 'gram' },
+            { label: language === 'hi' ? '☁️ कपास' : language === 'mr' ? '☁️ कापूस' : '☁️ Cotton', action: 'cotton' },
+            { label: language === 'hi' ? '🌾 धान' : language === 'mr' ? '🌾 धान' : '🌾 Paddy', action: 'paddy' },
           ]
     };
   }

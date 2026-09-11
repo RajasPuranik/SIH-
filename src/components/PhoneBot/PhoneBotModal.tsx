@@ -813,8 +813,21 @@ export const PhoneBotModal: React.FC = () => {
                   <input
                     type="text"
                     value={vrnInput}
-                    onChange={(e) => setVrnInput(e.target.value.toUpperCase())}
-                    placeholder="Type VRN..."
+                    onChange={(e) => {
+                      let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                      let state = val.match(/^[A-Z]{0,2}/)?.[0] || '';
+                      let city = val.substring(state.length).match(/^[0-9]{0,2}/)?.[0] || '';
+                      let series = val.substring(state.length + city.length).match(/^[A-Z]{0,2}/)?.[0] || ''; // Force max 2 for FIB style
+                      let number = val.substring(state.length + city.length + series.length).match(/^[0-9]{0,4}/)?.[0] || '';
+                      
+                      let formatted = state;
+                      if (state.length === 2 && val.length > 2) formatted += '-' + city;
+                      if (city.length === 2 && val.length > 4) formatted += '-' + series;
+                      if (series.length > 0 && val.length > 4 + series.length) formatted += '-' + number;
+                      
+                      setVrnInput(formatted);
+                    }}
+                    placeholder="__-__-__-____"
                     maxLength={13}
                     className="flex-1 bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-2 text-emerald-300 text-sm font-bold outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 uppercase tracking-widest placeholder:text-slate-500 placeholder:font-normal"
                   />
