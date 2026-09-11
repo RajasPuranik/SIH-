@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   ShieldCheck, 
@@ -21,6 +21,11 @@ export const MandiGateOfficerModal: React.FC = () => {
 
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  const bookingsRef = useRef(bookings);
+  useEffect(() => {
+    bookingsRef.current = bookings;
+  }, [bookings]);
 
   // Handle URL parameter on mount
   useEffect(() => {
@@ -58,8 +63,7 @@ export const MandiGateOfficerModal: React.FC = () => {
           } catch (e) {
             // Not a URL, use raw text
           }
-          
-          handleTokenScanned(finalToken);
+          handleTokenScanned(finalToken.trim());
         }, (error) => {
           // Ignore frequent scan errors
         });
@@ -78,7 +82,7 @@ export const MandiGateOfficerModal: React.FC = () => {
   if (!isOfficerScannerOpen) return null;
 
   const handleTokenScanned = (tokenText: string) => {
-    const booking = bookings.find(b => b.tokenNumber === tokenText || b.id === tokenText);
+    const booking = bookingsRef.current.find(b => b.tokenNumber === tokenText || b.id === tokenText);
     
     if (!booking) {
       setErrorMsg('Invalid QR Code: Token not found in database.');

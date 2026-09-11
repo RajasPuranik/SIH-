@@ -490,6 +490,7 @@ export const PhoneBotModal: React.FC = () => {
         state: currentUser?.state || 'Madhya Pradesh',
         district: currentUser?.district || 'Indore',
         mandiName: 'Indore Central Mandi',
+        tokenNumber: botRes.generatedToken.tokenNumber,
         cropId: finalCropId,
         cropName: finalCropName,
         estimatedQuantityQuintals: parseInt(botRes.generatedToken.quantity) || 50,

@@ -141,7 +141,7 @@ interface AppContextType {
   activeBookingId: string;
   setActiveBookingId: (id: string) => void;
   getActiveBooking: () => SlotBooking | undefined;
-  createBooking: (newBooking: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'>) => SlotBooking;
+  createBooking: (newBooking: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'> & { tokenNumber?: string }) => SlotBooking;
   updateBookingStatus: (id: string, newStatus: SlotStatus, remarks?: string, officerName?: string) => void;
 
   // Order Book & Pillar 2 state
@@ -497,10 +497,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const createBooking = (
-    newBookingData: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'>
+    newBookingData: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'> & { tokenNumber?: string }
   ): SlotBooking => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const tokenNumber = 'KT-' + newBookingData.state.slice(0, 2).toUpperCase() + '-2026-' + randomNum;
+    const tokenNumber = newBookingData.tokenNumber || 'KT-' + newBookingData.state.slice(0, 2).toUpperCase() + '-2026-' + randomNum;
     const newId = 'bk-' + Date.now();
     const crop = crops.find((c) => c.id === newBookingData.cropId);
     const mspPrice = crop ? crop.mspRate : 2425;
