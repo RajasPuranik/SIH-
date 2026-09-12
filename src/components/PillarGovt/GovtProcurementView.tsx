@@ -18,7 +18,7 @@ import { useApp } from '../../context/AppContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const GovtProcurementView: React.FC = () => {
-  const { getActiveBooking, setIsOfficerScannerOpen, userRole } = useApp();
+  const { getActiveBooking, setActiveBookingId, setIsOfficerScannerOpen, userRole, bookings, currentUser } = useApp();
   const { t } = useLanguage();
 
   const isOfficer = userRole === 'mandi_officer';
@@ -27,6 +27,8 @@ export const GovtProcurementView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'tracker' | 'book' | 'pass' | 'payment' | 'scanner' | 'map'>(defaultTab);
 
   const activeBooking = getActiveBooking();
+  const cleanPhone = (p?: string) => (p || '').replace(/\D/g, '').slice(-10);
+  const myBookings = isOfficer ? bookings : bookings.filter(b => cleanPhone(b.farmerPhone) === cleanPhone(currentUser?.phone));
     console.log('GovtProcurementView render: activeBooking is', activeBooking);
 
   const tabs = isOfficer
@@ -151,17 +153,21 @@ export const GovtProcurementView: React.FC = () => {
       )}
 
       {activeSubTab === 'pass' && (
-        activeBooking ? (
-          <div className="space-y-4">
-            <TokenPassCard booking={activeBooking} />
-            <div className="text-center">
-              <button
-                onClick={() => setActiveSubTab('tracker')}
-                className="inline-flex items-center gap-1.5 text-xs text-emerald-700 font-bold hover:underline"
-              >
-                Track Live Status for this Token &rarr;
-              </button>
-            </div>
+        myBookings.length > 0 ? (
+          <div className="space-y-8">
+            {myBookings.map((booking, idx) => (
+              <div key={booking.id || idx} className="space-y-4">
+                <TokenPassCard booking={booking} />
+                <div className="text-center pb-4 border-b border-slate-100 last:border-0">
+                  <button
+                    onClick={() => { setActiveBookingId(booking.id); setActiveSubTab('tracker'); }}
+                    className="inline-flex items-center gap-1.5 text-xs text-emerald-700 font-bold hover:underline"
+                  >
+                    Track Live Status for this Token &rarr;
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4">
