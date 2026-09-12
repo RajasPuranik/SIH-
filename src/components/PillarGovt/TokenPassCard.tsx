@@ -133,7 +133,7 @@ export const TokenPassCard: React.FC<TokenPassCardProps> = ({ booking }) => {
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Guaranteed MSP Payout</span>
+                
                 <span className="font-bold text-emerald-700 text-sm font-mono">
                   ₹{grossValue}
                 </span>
