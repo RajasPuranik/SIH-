@@ -202,6 +202,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       distanceKm: 580
     }
   ]);
+  useEffect(() => {
+    const syncWithBackend = async () => {
+      try {
+        const res = await fetch('/api/bookings');
+        if (res.ok) {
+          const dbBookings = await res.json();
+          if (dbBookings && dbBookings.length > 0) {
+            setBookings(dbBookings);
+          } else {
+            // DB is empty! Push our local persistent state to seed the database so other devices can see our current tokens
+            bookings.forEach(b => {
+              fetch('/api/bookings', { method: 'POST', body: JSON.stringify(b) }).catch(() => {});
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Backend sync failed', e);
+      }
+    };
+    syncWithBackend();
+    const interval = setInterval(syncWithBackend, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const updateShipmentStatus = (id: string, status: Shipment['status']) => {
     setShipments(prev => prev.map(s => (s.id === id ? { ...s, status, shipperId: currentUser?.id } : s)));
@@ -539,6 +562,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBookings((prev) => [newBooking, ...prev]);
     setActiveBookingId(newId);
+    fetch('/api/bookings', { method: 'POST', body: JSON.stringify(newBooking) }).catch(e => console.warn(e));
     playFeedbackTone('success');
     addNotification({
       type: 'SMS',
