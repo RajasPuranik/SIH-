@@ -132,15 +132,7 @@ export const TokenPassCard: React.FC<TokenPassCardProps> = ({ booking }) => {
                   {booking.vehicleNumber}
                 </span>
               </div>
-              <div>
-                
-                <span className="font-bold text-emerald-700 text-sm font-mono">
-                  ₹{grossValue}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  Direct Bank Transfer (DBT)
-                </span>
-              </div>
+              
             </div>
           </div>
         </div>
