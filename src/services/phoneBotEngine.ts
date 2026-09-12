@@ -64,10 +64,10 @@ const CROP_SYNONYMS: { id: string; terms: string[] }[] = [
   { id: 'soybean', terms: ['soybean', 'soya', 'सोयाबीन', 'सोया', 'सोयाबीनचा'] },
   { id: 'mustard', terms: ['mustard', 'sarson', 'सरसों', 'राई', 'मोहरी'] },
   { id: 'onion', terms: ['onion', 'प्याज', 'प्याज़', 'कांदा', 'कांद्याचा'] },
-  { id: 'cotton', terms: ['cotton', 'cottan', 'court on', 'cot on', 'कपास', 'रुई', 'कापूस', 'कपाशी'] },
-  { id: 'gram', terms: ['gram', 'graham', 'chana', 'channa', 'चना', 'चने', 'हरभरा', 'chanay'] },
+  { id: 'cotton', terms: ['cotton', 'cottan', 'court on', 'cot on', 'कपास', 'रुई', 'कापूस', 'कपाशी', 'कॉटन'] },
+  { id: 'chana', terms: ['gram', 'graham', 'chana', 'channa', 'चना', 'चने', 'हरभरा', 'chanay', 'ग्राम'] },
   { id: 'maize', terms: ['maize', 'corn', 'मक्का', 'मका', 'भुट्टा'] },
-  { id: 'paddy', terms: ['paddy', 'patty', 'dhan', 'dhaan', 'धान', 'भात', 'rice', 'chawal'] },
+  { id: 'paddy', terms: ['paddy', 'patty', 'dhan', 'dhaan', 'धान', 'भात', 'rice', 'chawal', 'padi', 'पैडी', 'तांदूळ', 'tandul'] },
 ];
 
 export const processBotQuery = (
@@ -203,7 +203,11 @@ export const processBotQuery = (
       const vrnMatch = pureAlphaNum.match(/^([A-Z]{2})([0-9]{1,2})([A-Z]{1,3})([0-9]{1,4})$/);
       
       if (vrnMatch) {
-        vrn = `${vrnMatch[1]}-${vrnMatch[2]}-${vrnMatch[3]}-${vrnMatch[4]}`;
+        const stateCode = vrnMatch[1];
+        let cityCode = vrnMatch[2].padStart(2, '0');
+        const series = vrnMatch[3];
+        let digits = vrnMatch[4].padStart(4, '0');
+        vrn = `${stateCode}-${cityCode}-${series}-${digits}`;
       } else {
         return {
           spokenText: language === 'hi' ? "यह एक अमान्य वाहन नंबर है। कृपया सही नंबर बताएं, जैसे एम पी 0 9 ए बी 1 2 3 4" : language === 'mr' ? "हा एक अवैध वाहन क्रमांक आहे. कृपया योग्य क्रमांक सांगा." : "That is an invalid vehicle number. Please state a valid VRN, for example MP 09 AB 1234.",

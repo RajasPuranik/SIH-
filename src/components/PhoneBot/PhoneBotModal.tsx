@@ -95,6 +95,7 @@ export const PhoneBotModal: React.FC = () => {
   // Initialize or reset when modal opens
   useEffect(() => {
     if (isPhoneBotOpen) {
+      bookingContextRef.current = null;
       if (phoneBotMode === 'outbound') {
         setCallState('incoming');
         playFeedbackTone('ping');
