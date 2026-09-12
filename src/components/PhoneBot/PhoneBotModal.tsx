@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Phone,
   PhoneCall,
@@ -42,6 +42,7 @@ export const PhoneBotModal: React.FC = () => {
     createBooking,
     playFeedbackTone,
     addNotification,
+    isLoggedIn,
   } = useApp();
 
   // Active Language State
@@ -469,7 +470,7 @@ export const PhoneBotModal: React.FC = () => {
       bookings,
       currentUser?.district || 'Indore',
       lang,
-      'farmer',
+      isLoggedIn ? currentUser?.role : 'guest',
       bookingContextRef.current
     );
 

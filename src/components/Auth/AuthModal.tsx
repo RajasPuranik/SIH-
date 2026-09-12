@@ -53,7 +53,7 @@ export const AuthModal: React.FC = () => {
 
   // Role-specific fields
   // Farmer
-  const [aadhaarLast4, setAadhaarLast4] = useState('');
+  const [aadhaar, setAadhaar] = useState('');
   const [khasraNo, setKhasraNo] = useState('');
   const [landAcres, setLandAcres] = useState('12.5');
   const [bankName, setBankName] = useState('State Bank of India');
@@ -138,6 +138,58 @@ export const AuthModal: React.FC = () => {
       setError('Please fill in required fields');
       return;
     }
+    
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(regPhone)) {
+      setError('Please enter a valid legal 10-digit Indian mobile number');
+      return;
+    }
+
+    if (selectedRole === 'farmer') {
+      const aadharRegex = /^\d{12}$/;
+      if (!aadharRegex.test(aadhaar)) {
+        setError('Please enter a valid legal 12-digit Aadhaar number');
+        return;
+      }
+      
+      const d = [
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
+        [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
+        [3, 4, 0, 1, 2, 8, 9, 5, 6, 7],
+        [4, 0, 1, 2, 3, 9, 5, 6, 7, 8],
+        [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+        [6, 5, 9, 8, 7, 1, 0, 4, 3, 2],
+        [7, 6, 5, 9, 8, 2, 1, 0, 4, 3],
+        [8, 7, 6, 5, 9, 3, 2, 1, 0, 4],
+        [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+      ];
+      const p = [
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        [1, 5, 7, 6, 2, 8, 3, 0, 9, 4],
+        [5, 8, 0, 3, 7, 9, 6, 1, 4, 2],
+        [8, 9, 1, 6, 0, 4, 3, 5, 2, 7],
+        [9, 4, 5, 3, 1, 2, 6, 8, 7, 0],
+        [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+        [2, 7, 9, 3, 8, 0, 6, 4, 1, 5],
+        [7, 0, 4, 6, 9, 1, 3, 2, 5, 8]
+      ];
+      
+      let c = 0;
+      let array = aadhaar.split('').reverse().map(Number);
+      for (let i = 0; i < array.length; i++) {
+        c = d[c][p[i % 8][array[i]]];
+      }
+      
+      if (c !== 0) {
+        setError('Please enter a valid legal Aadhaar number (Verhoeff check failed)');
+        return;
+      }
+      if (!khasraNo || khasraNo.trim().length === 0) {
+        setError('Please enter a valid legal Khasra number');
+        return;
+      }
+    }
 
     const newProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
       name: regName,
@@ -150,7 +202,7 @@ export const AuthModal: React.FC = () => {
       primaryMandi: regMandi,
       // Farmer specifics
       ...(selectedRole === 'farmer' ? {
-        aadhaarMasked: `XXXX-XXXX-${aadhaarLast4 || '4412'}`,
+        aadhaarMasked: aadhaar ? `XXXX-XXXX-${aadhaar.slice(-4)}` : 'XXXX-XXXX-4412',
         khasraNumber: khasraNo || `MP-${regDistrict.slice(0, 3).toUpperCase()}-2026/89`,
         landSizeAcres: parseFloat(landAcres) || 10,
         bankName,
@@ -453,13 +505,13 @@ export const AuthModal: React.FC = () => {
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-slate-600 mb-1">Aadhaar (Last 4 Digits)</label>
+                      <label className="block text-slate-600 mb-1">Aadhaar (12 Digits) *</label>
                       <input
                         type="text"
-                        maxLength={4}
-                        value={aadhaarLast4}
-                        onChange={(e) => setAadhaarLast4(e.target.value)}
-                        placeholder="8921"
+                        maxLength={12}
+                        value={aadhaar}
+                        onChange={(e) => setAadhaar(e.target.value.replace(/\D/g, ''))}
+                        placeholder="123456789012"
                         className="w-full px-3 py-1.5 border border-slate-300 rounded-lg font-mono"
                       />
                     </div>
