@@ -35,6 +35,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/stt/, '/stt'),
       },
+      '/api/bookings': {
+        target: VOICE_SERVER,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/bookings/, '/bookings'),
+      },
+      '/api/msp-rates': {
+        target: VOICE_SERVER,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/msp-rates/, '/msp-rates'),
+      },
     },
   },
 })

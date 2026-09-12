@@ -202,6 +202,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       distanceKm: 580
     }
   ]);
+  const bookingsRef = useRef(bookings);
+  useEffect(() => {
+    bookingsRef.current = bookings;
+  }, [bookings]);
+
   useEffect(() => {
     const syncWithBackend = async () => {
       try {
@@ -209,10 +214,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (res.ok) {
           const dbBookings = await res.json();
           if (dbBookings && dbBookings.length > 0) {
+            const currentUserStr = localStorage.getItem('kt_current_user');
+            let currentUserObj: any = null;
+            if (currentUserStr) {
+              try { currentUserObj = JSON.parse(currentUserStr); } catch(e){}
+            }
+            
+            dbBookings.forEach((newB: any) => {
+              const oldB = bookingsRef.current.find((b: any) => b.id === newB.id);
+              if (oldB && oldB.status !== newB.status) {
+                const cleanPhone = (p?: string) => (p || '').replace(/\D/g, '').slice(-10);
+                const isOwner = currentUserObj && currentUserObj.role === 'farmer' && cleanPhone(currentUserObj.phone) === cleanPhone(newB.farmerPhone);
+                if (isOwner) {
+                  let stageName = newB.status.replace(/_/g, ' ');
+                  if (newB.status === 'ARRIVED_AT_GATE') stageName = 'Arrived at Gate';
+                  if (newB.status === 'QUALITY_VERIFIED') stageName = 'Quality Verified';
+                  if (newB.status === 'WEIGHED') stageName = 'Weighed';
+                  if (newB.status === 'PAYMENT_COMPLETED') stageName = 'Payment Completed';
+                  
+                  addNotification({
+                    type: 'SMS',
+                    title: `Token ${newB.tokenNumber} Updated`,
+                    message: `Your token has successfully advanced to the '${stageName}' stage.`
+                  });
+                  playFeedbackTone('success');
+                }
+              }
+            });
             setBookings(dbBookings);
           } else {
-            // DB is empty! Push our local persistent state to seed the database so other devices can see our current tokens
-            bookings.forEach(b => {
+            bookingsRef.current.forEach(b => {
               fetch('/api/bookings', { method: 'POST', body: JSON.stringify(b) }).catch(() => {});
             });
           }
@@ -611,6 +642,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     officerName?: string,
     skipBroadcast: boolean = false
   ) => {
+    let pushedBooking: SlotBooking | null = null;
     setBookings((prev) =>
       prev.map((booking) => {
         if (booking.id !== id && booking.tokenNumber !== id) return booking;
@@ -654,33 +686,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             minute: '2-digit',
           });
         }
+        pushedBooking = updatedBooking;
         return updatedBooking;
       })
     );
     playFeedbackTone('success');
 
-    // Notify the farmer
-    const booking = bookings.find(b => b.id === id || b.tokenNumber === id);
-    if (booking) {
-      let stageName = newStatus.replace(/_/g, ' ');
-      if (newStatus === 'ARRIVED_AT_GATE') stageName = 'Arrived at Gate';
-      if (newStatus === 'QUALITY_VERIFIED') stageName = 'Quality Verified';
-      if (newStatus === 'WEIGHED') stageName = 'Weighed';
-      if (newStatus === 'PAYMENT_COMPLETED') stageName = 'Payment Completed';
+    setTimeout(() => {
+      if (pushedBooking) {
+        let stageName = newStatus.replace(/_/g, ' ');
+        if (newStatus === 'ARRIVED_AT_GATE') stageName = 'Arrived at Gate';
+        if (newStatus === 'QUALITY_VERIFIED') stageName = 'Quality Verified';
+        if (newStatus === 'WEIGHED') stageName = 'Weighed';
+        if (newStatus === 'PAYMENT_COMPLETED') stageName = 'Payment Completed';
 
-      addNotification({
-        type: 'SMS',
-        title: `Token ${booking.tokenNumber} Updated`,
-        message: `Your token has successfully advanced to the '${stageName}' stage. ${remarks}`
-      });
-    }
+        addNotification({
+          type: 'SMS',
+          title: `Token ${(pushedBooking as any).tokenNumber} Updated`,
+          message: `Your token has successfully advanced to the '${stageName}' stage. ${remarks}`
+        });
 
-    if (!skipBroadcast) {
-      fetch('https://ntfy.sh/kisantrack-sih-2026-demo-sync', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'UPDATE_STATUS', id, newStatus, remarks, officerName })
-      }).catch(e => console.warn('ntfy err', e));
-    }
+        if (!skipBroadcast) {
+          fetch('/api/bookings', {
+            method: 'POST',
+            body: JSON.stringify(pushedBooking)
+          }).catch(e => console.warn('api err', e));
+        }
+      }
+    }, 0);
   };
 
   const addOrderItem = (item: Omit<OrderBookItem, 'id' | 'timestamp'>) => {

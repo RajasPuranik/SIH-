@@ -341,6 +341,8 @@ export const AuthModal: React.FC = () => {
           {/* Form: LOGIN MODE */}
           {authModalMode === 'login' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4 pt-2">
+              {error && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 font-bold">{error}</div>}
+              {success && <div className="p-3 bg-emerald-50 text-emerald-700 text-xs rounded-xl border border-emerald-200 font-bold">{success}</div>}
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <span className="font-bold text-slate-800 text-xs">
                   Login as {rolesList.find(r => r.role === selectedRole)?.title}
@@ -376,7 +378,7 @@ export const AuthModal: React.FC = () => {
                     type="text"
                     required
                     value={loginIdentifier}
-                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    onChange={(e) => setLoginIdentifier(e.target.value.replace(/\D/g, ''))}
                     placeholder="Enter 10-digit mobile number"
                     className="w-full px-3 py-2.5 text-xs border border-slate-300 rounded-r-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden font-medium"
                   />
@@ -423,6 +425,8 @@ export const AuthModal: React.FC = () => {
           ) : (
             /* Form: REGISTER MODE */
             <form onSubmit={handleRegisterSubmit} className="space-y-4 pt-2">
+              {error && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 font-bold">{error}</div>}
+              {success && <div className="p-3 bg-emerald-50 text-emerald-700 text-xs rounded-xl border border-emerald-200 font-bold">{success}</div>}
               <div className="border-b border-slate-200 pb-2">
                 <span className="font-bold text-slate-800 text-xs">
                   New {rolesList.find(r => r.role === selectedRole)?.title} Registration
@@ -449,7 +453,7 @@ export const AuthModal: React.FC = () => {
                     required
                     maxLength={10}
                     value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
+                    onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, ''))}
                     placeholder="10-digit mobile"
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl"
                   />
