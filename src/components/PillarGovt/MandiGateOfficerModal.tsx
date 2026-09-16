@@ -113,17 +113,6 @@ export const MandiGateOfficerModal: React.FC = () => {
 
     setScanResult(booking.tokenNumber);
     playFeedbackTone('success');
-
-    // Auto-advance status
-    if (booking.status === 'BOOKED') {
-      updateBookingStatus(booking.id, 'ARRIVED_AT_GATE', 'Officer scanned entry pass at Gate 3', 'APMC Entry Officer');
-    } else if (booking.status === 'ARRIVED_AT_GATE') {
-      updateBookingStatus(booking.id, 'QUALITY_VERIFIED', 'Moisture 11.5%, Grade-A verified', 'APMC Quality Assay');
-    } else if (booking.status === 'QUALITY_VERIFIED') {
-      updateBookingStatus(booking.id, 'WEIGHED', 'Gross 9200kg, Tare 2700kg. Net: 65 Qtl', 'Weighbridge Operator');
-    } else if (booking.status === 'WEIGHED') {
-      updateBookingStatus(booking.id, 'PAYMENT_COMPLETED', 'PFMS DBT Payment Cleared', 'Treasury Officer');
-    }
   };
 
   const currentBooking = bookings.find(b => b.tokenNumber === scanResult);
@@ -184,7 +173,14 @@ export const MandiGateOfficerModal: React.FC = () => {
                 </div>
               </div>
               <button 
-                onClick={() => setScanResult(null)}
+                onClick={() => {
+                  fetch('/api/scan-trigger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: currentBooking.tokenNumber })
+                  }).catch(() => {});
+                  setScanResult(null);
+                }}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"
               >
                 Scan Next Token

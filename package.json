@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "voice-server": "python3 server/voice_server.py",
+    "scan-server": "python3 server/scan_server.py",
+    "servers": "concurrently \"npm run voice-server\" \"npm run scan-server\"",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"

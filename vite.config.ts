@@ -45,6 +45,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/msp-rates/, '/msp-rates'),
       },
+      '/api/scan-wait': {
+        target: 'http://127.0.0.1:8788',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/scan-wait/, '/scan-wait'),
+      },
+      '/api/scan-trigger': {
+        target: 'http://127.0.0.1:8788',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/scan-trigger/, '/scan-trigger'),
+      },
     },
   },
 })

@@ -1,17 +1,18 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/context/AppContext.tsx', 'utf8');
 
-// 1. Fix syncWithBackend
+// 1. Fix syncWithBackend to prevent unnecessary state resets
 code = code.replace(
   '            setBookings(dbBookings);\n          } else {',
   '            if (JSON.stringify(dbBookings) !== JSON.stringify(bookingsRef.current)) {\n              setBookings(dbBookings);\n            }\n          } else {'
 );
 
-// 2. Fix scanWaitInterval
-const oldIntervalStart = '    const scanWaitInterval = setInterval(async () => {';
-const oldIntervalEnd = '    return () => clearInterval(scanWaitInterval);\n  }, [bookings, activeBookingId, currentUser]);';
-
-const newInterval = `    const scanWaitInterval = setInterval(async () => {
+// 2. Add corrected scanWaitInterval back in
+const insertTarget = '  const createBooking = (';
+const newInterval = `  useEffect(() => {
+    // This effect acts as the "loop for looking" on the farmer side
+    // It polls the separate scan-wait server to check if the current active booking's QR was scanned
+    const scanWaitInterval = setInterval(async () => {
       if (!currentUser || currentUser.role !== 'farmer') return;
       const cleanPhone = (p) => (p || '').replace(/\\D/g, '').slice(-10);
       const myBookings = bookingsRef.current.filter(b => cleanPhone(b.farmerPhone) === cleanPhone(currentUser.phone) && b.status !== 'PAYMENT_COMPLETED');
@@ -106,16 +107,15 @@ const newInterval = `    const scanWaitInterval = setInterval(async () => {
     }, 2000);
 
     return () => clearInterval(scanWaitInterval);
-  }, [currentUser]);`;
+  }, [currentUser]);
 
-const startIndex = code.indexOf(oldIntervalStart);
-const endIndex = code.indexOf(oldIntervalEnd) + oldIntervalEnd.length;
+  const createBooking = (`;
 
-if (startIndex === -1 || endIndex === -1) {
-    console.error('Could not find interval block to replace');
+if (!code.includes(insertTarget)) {
+    console.error('Could not find insertTarget');
     process.exit(1);
 }
 
-const finalCode = code.slice(0, startIndex) + newInterval + code.slice(endIndex);
-fs.writeFileSync('src/context/AppContext.tsx', finalCode);
+code = code.replace(insertTarget, newInterval);
+fs.writeFileSync('src/context/AppContext.tsx', code);
 console.log('Successfully updated AppContext.tsx');
