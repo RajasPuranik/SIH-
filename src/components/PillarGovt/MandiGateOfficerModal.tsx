@@ -88,6 +88,7 @@ export const MandiGateOfficerModal: React.FC = () => {
   if (!isOfficerScannerOpen) return null;
 
   const handleTokenScanned = (tokenText: string) => {
+    tokenText = (tokenText || "").trim().toUpperCase();
     let booking = bookingsRef.current.find(b => b.tokenNumber === tokenText || b.id === tokenText);
     
     if (!booking) {

@@ -147,23 +147,21 @@ export const GovtProcurementView: React.FC = () => {
               <input 
                 type="text" 
                 id="manual-token-input"
-                placeholder="Enter Token No." 
-                className="px-4 py-2 outline-none text-sm w-40 font-mono uppercase bg-transparent"
+                value={manualToken}
+                onChange={handleTokenChange}
+                placeholder="KT-MP-2026-XXXX" 
+                className="px-4 py-2 outline-none text-sm w-44 font-mono uppercase bg-transparent placeholder-slate-300"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = (e.target as HTMLInputElement).value;
-                    if (val) {
-                      window.history.replaceState({}, '', '/?scan=' + val);
-                      setIsOfficerScannerOpen(true);
-                    }
+                  if (e.key === 'Enter' && manualToken) {
+                    window.history.replaceState({}, '', '/?scan=' + manualToken);
+                    setIsOfficerScannerOpen(true);
                   }
                 }}
               />
               <button
                 onClick={() => {
-                  const val = (document.getElementById('manual-token-input') as HTMLInputElement).value;
-                  if (val) {
-                    window.history.replaceState({}, '', '/?scan=' + val);
+                  if (manualToken) {
+                    window.history.replaceState({}, '', '/?scan=' + manualToken);
                     setIsOfficerScannerOpen(true);
                   }
                 }}
