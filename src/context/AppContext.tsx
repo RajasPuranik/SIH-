@@ -241,7 +241,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 }
               }
             });
-            setBookings(dbBookings);
+            
+            setBookings(prev => {
+              const newArray = [...prev];
+              let changed = false;
+              dbBookings.forEach((dbB: any) => {
+                const idx = newArray.findIndex(b => b.id === dbB.id);
+                if (idx >= 0) {
+                  // Only accept DB booking if it is strictly newer or same (prevents local optimistic updates from being overwritten by stale DB reads)
+                  if ((dbB.statusHistory?.length || 0) >= (newArray[idx].statusHistory?.length || 0)) {
+                    // Check if actually different to prevent unnecessary renders
+                    if (JSON.stringify(newArray[idx]) !== JSON.stringify(dbB)) {
+                      newArray[idx] = dbB;
+                      changed = true;
+                    }
+                  }
+                } else {
+                  newArray.push(dbB);
+                  changed = true;
+                }
+              });
+              return changed ? newArray : prev;
+            });
           } else {
             bookingsRef.current.forEach(b => {
               fetch('/api/bookings', { method: 'POST', body: JSON.stringify(b) }).catch(() => {});
@@ -270,6 +291,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const isLoggedIn = currentUser !== null;
+
+  useEffect(() => {
+    if (currentUser) {
+      setUserRoleState(currentUser.role);
+    }
+  }, [currentUser]);
 
   const setUserRole = (role: UserRole) => setUserRoleState(role);
 
