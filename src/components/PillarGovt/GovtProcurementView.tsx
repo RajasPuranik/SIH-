@@ -26,6 +26,16 @@ export const GovtProcurementView: React.FC = () => {
 
   const [activeSubTab, setActiveSubTab] = useState<'tracker' | 'book' | 'pass' | 'payment' | 'scanner' | 'map'>(defaultTab);
 
+  const [manualToken, setManualToken] = useState('');
+  const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (val.length > 2) val = val.slice(0, 2) + '-' + val.slice(2);
+    if (val.length > 5) val = val.slice(0, 5) + '-' + val.slice(5);
+    if (val.length > 10) val = val.slice(0, 10) + '-' + val.slice(10);
+    if (val.length > 15) val = val.slice(0, 15);
+    setManualToken(val);
+  };
+
   const activeBooking = getActiveBooking();
   const cleanPhone = (p?: string) => (p || '').replace(/\D/g, '').slice(-10);
   const myBookings = isOfficer ? bookings : bookings.filter(b => cleanPhone(b.farmerPhone) === cleanPhone(currentUser?.phone));
