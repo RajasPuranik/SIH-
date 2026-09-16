@@ -28,15 +28,20 @@ export const MandiGateOfficerModal: React.FC = () => {
     bookingsRef.current = bookings;
   }, [bookings]);
 
-  // Handle URL parameter on mount
+  // Handle URL parameter when opened
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('scan');
-    if (token) {
-      handleTokenScanned(token);
-      window.history.replaceState({}, '', '/');
+    if (isOfficerScannerOpen) {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('scan');
+      if (token) {
+        // Need a small timeout to ensure state is ready if handleTokenScanned relies on current state
+        setTimeout(() => {
+          handleTokenScanned(token);
+          window.history.replaceState({}, '', '/');
+        }, 50);
+      }
     }
-  }, []);
+  }, [isOfficerScannerOpen]);
 
   // Initialize Scanner
   useEffect(() => {
