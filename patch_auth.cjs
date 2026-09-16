@@ -1,11 +1,15 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/components/Auth/AuthModal.tsx', 'utf8');
+let txt = fs.readFileSync('src/components/Auth/AuthModal.tsx', 'utf8');
 
-const regex = /\{\/\* Quick 1-Click Demo Login Chips \*\/\}[\s\S]*?<\/div>\s*<\/div>/;
-content = content.replace(regex, '');
+// 1. Full Legal Name text only
+txt = txt.replace(
+  /onChange=\{\(e\) => setRegName\(e\.target\.value\)\}/g,
+  "onChange={(e) => setRegName(e.target.value.replace(/[^a-zA-Z\\s]/g, ''))}"
+);
 
-content = content.replace("setError('Invalid OTP. Use 1234 for demo.');", "setError('Invalid OTP. For now, use 1234.');");
-content = content.replace("Demo OTP: 1234", "OTP: 1234");
-content = content.replace(/const handleQuickDemoLogin = [\s\S]*?\};\s*/, '');
+// 2. Simplify Aadhaar validation to just 12 digits so they can actually demo it
+const verhoeffRegex = /const d = \[\s*\[0, 1.*?if \(c !== 0\) \{\s*setError\('Aadhaar number is invalid \(fails checksum verification\)\. Please enter a real legal Aadhaar\.'\);\s*return;\s*\}/s;
+txt = txt.replace(verhoeffRegex, "");
 
-fs.writeFileSync('src/components/Auth/AuthModal.tsx', content);
+fs.writeFileSync('src/components/Auth/AuthModal.tsx', txt, 'utf8');
+console.log('Patched AuthModal');
