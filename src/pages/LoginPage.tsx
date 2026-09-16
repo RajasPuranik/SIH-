@@ -87,6 +87,7 @@ export const LoginPage: React.FC = () => {
   const [showOtp, setShowOtp] = useState(false);
   const [name, setName] = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [aadhaar, setAadhaar] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -269,7 +270,7 @@ export const LoginPage: React.FC = () => {
                 type="text"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
                 placeholder="e.g. Rameshwar Patidar"
                 className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
               />
@@ -293,7 +294,7 @@ export const LoginPage: React.FC = () => {
                   maxLength={10}
                   required
                   value={regPhone}
-                  onChange={(e) => { setRegPhone(e.target.value); setError(''); }}
+                  onChange={(e) => { setRegPhone(e.target.value.replace(/\D/g, '')); setError(''); }}
                   placeholder="10-digit mobile"
                   className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-r-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
                 />
