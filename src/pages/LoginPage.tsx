@@ -128,7 +128,8 @@ export const LoginPage: React.FC = () => {
     } else {
       setSuccess(result.message);
     }
-  };/* ─────────── LOGIN SCREEN ─────────── */
+  };
+/* ─────────── LOGIN SCREEN ─────────── */
   if (mode === 'login') {
     return (
       <PageShell narrow>
@@ -270,7 +271,7 @@ export const LoginPage: React.FC = () => {
                 type="text"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                onChange={(e) => { e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); setName(e.target.value); }}
                 placeholder="e.g. Rameshwar Patidar"
                 className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
               />
@@ -294,13 +295,27 @@ export const LoginPage: React.FC = () => {
                   maxLength={10}
                   required
                   value={regPhone}
-                  onChange={(e) => { setRegPhone(e.target.value.replace(/\D/g, '')); setError(''); }}
+                  onChange={(e) => { e.target.value = e.target.value.replace(/\D/g, ''); setRegPhone(e.target.value); setError(''); }}
                   placeholder="10-digit mobile"
                   className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-r-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
                 />
               </div>
             </div>
 
+            {selectedRole === 'farmer' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Aadhaar Number *</label>
+                <input
+                  type="text"
+                  maxLength={12}
+                  required
+                  value={aadhaar}
+                  onChange={(e) => { e.target.value = e.target.value.replace(/\D/g, ''); setAadhaar(e.target.value); setError(''); }}
+                  placeholder="12-digit Aadhaar"
+                  className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none font-mono"
+                />
+              </div>
+            )}
             <button
               type="submit"
               className={`w-full py-2.5 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-2 cursor-pointer transition ${roleInfo.btn}`}
