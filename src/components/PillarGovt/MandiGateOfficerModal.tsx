@@ -55,6 +55,20 @@ export const MandiGateOfficerModal: React.FC = () => {
 
   const handleTokenScanned = (tokenText: string) => {
     tokenText = (tokenText || "").trim().toUpperCase();
+    
+    // If it's a URL from the QR code (e.g. https://kisantrack.vercel.app/?scan=KT-MP-2026-1234)
+    if (tokenText.includes('SCAN=')) {
+      const match = tokenText.match(/SCAN=(KT-[A-Z0-9-]+)/);
+      if (match && match[1]) {
+        tokenText = match[1];
+      }
+    } else if (tokenText.includes('KT-')) {
+      const match = tokenText.match(/(KT-[A-Z0-9-]+)/);
+      if (match && match[1]) {
+        tokenText = match[1];
+      }
+    }
+
     let booking = bookingsRef.current.find(b => b.tokenNumber === tokenText || b.id === tokenText);
     
     if (!booking) {
