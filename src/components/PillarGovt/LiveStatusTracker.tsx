@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Search, 
+  Search, AlertTriangle, 
   CheckCircle2, 
   Clock, 
   AlertCircle, 
@@ -88,7 +88,9 @@ export const LiveStatusTracker: React.FC = () => {
     }
   ];
 
+  const isRejected = currentBooking.status === 'REJECTED';
   const getStageIndex = (status: SlotStatus) => {
+    if (status === 'REJECTED') return 2; // Failed at Mandi Gate
     return stages.findIndex(s => s.key === status);
   };
 
@@ -173,6 +175,23 @@ export const LiveStatusTracker: React.FC = () => {
           </div>
         </div>
 
+        {isRejected && (
+          <div className="mt-6 mb-2 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-red-800 text-base">Consignment Rejected: Token Expired</h3>
+              <p className="text-sm text-red-700 mt-1">
+                Your crop did not meet the required Fair Average Quality (FAQ) standards during the Moisture & Quality Assay at the APMC Mandi gate. 
+              </p>
+              <div className="mt-3 text-xs bg-white/50 inline-block px-3 py-1.5 rounded-lg border border-red-100 font-medium text-red-900">
+                {currentBooking.statusHistory[currentBooking.statusHistory.length - 1]?.remarks || 'Quality standards failed.'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Visual Sequential Progress Bar */}
         <div className="py-8">
           <div className="relative">
@@ -180,7 +199,7 @@ export const LiveStatusTracker: React.FC = () => {
             <div className="hidden md:block absolute top-5 left-6 right-6 h-1 bg-slate-200 -z-0">
               <div 
                 className="h-full bg-emerald-500 transition-all duration-500"
-                style={{ width: `${(currentIndex / (stages.length - 1)) * 100}%` }}
+                style={{ width: `${(currentIndex / (stages.length - 1)) * 100}%`, backgroundColor: isRejected ? '#ef4444' : '' }}
               />
             </div>
 
@@ -188,6 +207,7 @@ export const LiveStatusTracker: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-7 gap-4 relative z-10">
               {stages.map((stage, idx) => {
                 const isPassed = idx < currentIndex;
+                if (isRejected && idx >= 2) return null; // hide future steps if rejected
                 const isCurrent = idx === currentIndex;
                 const isFuture = idx > currentIndex;
 

@@ -1,88 +1,54 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, 
-  ShieldCheck, 
-  Scan, 
-  CheckCircle2, 
-  AlertTriangle,
-  Camera
-} from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import React, { useEffect, useState } from 'react';
+import { Camera, X, CheckCircle2, AlertTriangle, Scan, Scale, Droplet, Sprout } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { useApp } from '../../context/AppContext';
 
 export const MandiGateOfficerModal: React.FC = () => {
-  const { 
-    isOfficerScannerOpen, 
-    setIsOfficerScannerOpen, 
-    bookings, 
-    updateBookingStatus, 
-    playFeedbackTone,
-    createBooking 
-  } = useApp();
-
+  const { isOfficerScannerOpen, setIsOfficerScannerOpen, bookings, createBooking, playFeedbackTone, activePillar } = useApp();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const bookingsRef = React.useRef(bookings);
   
-  const bookingsRef = useRef(bookings);
+  // Quality Assay State
+  const [actualWeight, setActualWeight] = useState('');
+  const [moisture, setMoisture] = useState('');
+  const [brokenGrains, setBrokenGrains] = useState('');
+
   useEffect(() => {
     bookingsRef.current = bookings;
   }, [bookings]);
 
-  // Handle URL parameter when opened
   useEffect(() => {
-    if (isOfficerScannerOpen) {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('scan');
-      if (token) {
-        // Need a small timeout to ensure state is ready if handleTokenScanned relies on current state
-        setTimeout(() => {
-          handleTokenScanned(token);
-          window.history.replaceState({}, '', '/');
-        }, 50);
-      }
+    // If URL has ?scan=... auto trigger
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('scan');
+    if (token && isOfficerScannerOpen) {
+      setTimeout(() => {
+        handleTokenScanned(token);
+        window.history.replaceState({}, '', '/');
+      }, 50);
     }
   }, [isOfficerScannerOpen]);
 
-  // Initialize Scanner
   useEffect(() => {
     if (!isOfficerScannerOpen || scanResult) return;
-    
-    // Slight delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      try {
-        const scanner = new Html5QrcodeScanner(
-          "qr-reader", 
-          { fps: 10, qrbox: { width: 250, height: 250 } }, 
-          false
-        );
-        
-        scanner.render((text) => {
-          scanner.clear();
-          
-          // The QR code now contains a URL like https://domain/?scan=KT-1234
-          // We need to extract the token if it's a URL
-          let finalToken = text;
-          try {
-            const url = new URL(text);
-            const scanParam = url.searchParams.get('scan');
-            if (scanParam) finalToken = scanParam;
-          } catch (e) {
-            // Not a URL, use raw text
-          }
-          handleTokenScanned(finalToken.trim());
-        }, (error) => {
-          // Ignore frequent scan errors
-        });
 
-        return () => {
-          scanner.clear().catch(() => {});
-        };
-      } catch (err) {
-        console.error(err);
-      }
-    }, 100);
-    
-    return () => clearTimeout(timer);
+    let scanner: Html5QrcodeScanner | null = null;
+    try {
+      scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, false);
+      scanner.render((text) => {
+        scanner?.clear().catch(() => {});
+        handleTokenScanned(text);
+      }, () => {});
+    } catch (e) {
+      console.error(e);
+    }
+
+    return () => {
+      try {
+        scanner?.clear().catch(() => {});
+      } catch (e) {}
+    };
   }, [isOfficerScannerOpen, scanResult]);
 
   if (!isOfficerScannerOpen) return null;
@@ -122,6 +88,36 @@ export const MandiGateOfficerModal: React.FC = () => {
   };
 
   const currentBooking = bookings.find(b => b.tokenNumber === scanResult);
+  
+  const isAssayRequired = currentBooking?.status === 'ARRIVED_AT_GATE';
+
+  const handleAssaySubmit = () => {
+    const moistVal = parseFloat(moisture);
+    const brokenVal = parseFloat(brokenGrains);
+    
+    if (!actualWeight || !moisture || !brokenGrains) {
+      setErrorMsg('Please fill all quality assay fields.');
+      return;
+    }
+    
+    const payload = {
+      actualWeight,
+      moisture: moistVal,
+      brokenGrains: brokenVal,
+      rejected: moistVal > 12 || brokenVal > 2
+    };
+
+    fetch('/api/scan-trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: currentBooking?.tokenNumber, payload })
+    }).catch(() => {});
+    
+    setScanResult(null);
+    setActualWeight('');
+    setMoisture('');
+    setBrokenGrains('');
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
@@ -137,7 +133,7 @@ export const MandiGateOfficerModal: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => setIsOfficerScannerOpen(false)}
+            onClick={() => { setIsOfficerScannerOpen(false); setScanResult(null); }}
             className="text-blue-300 hover:text-white p-1 rounded-lg"
           >
             <X className="w-5 h-5" />
@@ -172,25 +168,65 @@ export const MandiGateOfficerModal: React.FC = () => {
                 <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 text-left text-sm space-y-2">
                   <div className="flex justify-between"><span className="text-slate-500">Farmer:</span> <span className="font-bold">{currentBooking.farmerName}</span></div>
                   <div className="flex justify-between"><span className="text-slate-500">Crop:</span> <span className="font-bold">{currentBooking.cropName}</span></div>
-                  <div className="flex justify-between border-t pt-2 mt-2">
-                    <span className="text-slate-500">New Status:</span> 
-                    <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">{currentBooking.status}</span>
-                  </div>
+                  {!isAssayRequired && (
+                    <div className="flex justify-between border-t pt-2 mt-2">
+                      <span className="text-slate-500">New Status:</span> 
+                      <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">{currentBooking.status}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <button 
-                onClick={() => {
-                  fetch('/api/scan-trigger', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: currentBooking.tokenNumber })
-                  }).catch(() => {});
-                  setScanResult(null);
-                }}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"
-              >
-                Scan Next Token
-              </button>
+              
+              {isAssayRequired ? (
+                <div className="text-left space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                  <h4 className="font-bold text-blue-900 text-sm flex items-center gap-2">
+                    <Droplet className="w-4 h-4" /> Quality Assay & Weighing
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Actual Weight (Qtl)</label>
+                      <div className="relative">
+                        <Scale className="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400" />
+                        <input type="number" value={actualWeight} onChange={e => { setActualWeight(e.target.value); setErrorMsg(''); }} className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="e.g. 50" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Moisture (%)</label>
+                      <div className="relative">
+                        <Droplet className="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400" />
+                        <input type="number" value={moisture} onChange={e => { setMoisture(e.target.value); setErrorMsg(''); }} className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="Max 12%" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Broken Grains (%)</label>
+                    <div className="relative">
+                      <Sprout className="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400" />
+                      <input type="number" value={brokenGrains} onChange={e => { setBrokenGrains(e.target.value); setErrorMsg(''); }} className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="Max 2%" />
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleAssaySubmit}
+                    className="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm"
+                  >
+                    Submit Quality & Weight
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => {
+                    fetch('/api/scan-trigger', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ token: currentBooking.tokenNumber, payload: {} })
+                    }).catch(() => {});
+                    setScanResult(null);
+                  }}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"
+                >
+                  Scan Next Token
+                </button>
+              )}
             </div>
           ) : null}
         </div>

@@ -67,7 +67,8 @@ export type SlotStatus =
   | 'QUALITY_VERIFIED'
   | 'WEIGHED'
   | 'MSP_BILLED'
-  | 'PAYMENT_COMPLETED';
+  | 'PAYMENT_COMPLETED'
+  | 'REJECTED';
 
 export interface SlotBooking {
   id: string;

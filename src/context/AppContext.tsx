@@ -617,6 +617,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               let nextStatus = 'IN_TRANSIT';
               let remarks = 'Token verified. Proceeding to Transit.';
               let officer = 'APMC Dispatch Officer';
+              let updatedQuantity = b.estimatedQuantityQuintals;
               
               if (b.status === 'BOOKED') {
                 nextStatus = 'IN_TRANSIT';
@@ -627,12 +628,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 remarks = 'Arrived at Gate 3.';
                 officer = 'APMC Entry Officer';
               } else if (b.status === 'ARRIVED_AT_GATE') {
-                nextStatus = 'QUALITY_VERIFIED';
-                remarks = 'Moisture 11.5%, Grade-A verified';
-                officer = 'APMC Quality Assay';
+                if (data.payload && data.payload.rejected) {
+                  nextStatus = 'REJECTED';
+                  remarks = `Your crop doesn't meet the required standards. Token expired. (Moisture: ${data.payload.moisture}%, Broken: ${data.payload.brokenGrains}%)`;
+                  officer = 'APMC Quality Assay';
+                } else if (data.payload && data.payload.moisture) {
+                  nextStatus = 'QUALITY_VERIFIED';
+                  remarks = `Moisture ${data.payload.moisture}%, Grade-A verified`;
+                  officer = 'APMC Quality Assay';
+                  if (data.payload.actualWeight) {
+                    updatedQuantity = parseFloat(data.payload.actualWeight);
+                  }
+                } else {
+                  nextStatus = 'QUALITY_VERIFIED';
+                  remarks = 'Moisture 11.5%, Grade-A verified';
+                  officer = 'APMC Quality Assay';
+                }
               } else if (b.status === 'QUALITY_VERIFIED') {
                 nextStatus = 'WEIGHED';
-                remarks = 'Gross 9200kg, Tare 2700kg. Net: 65 Qtl';
+                remarks = `Gross ${(updatedQuantity * 100) + 2700}kg, Tare 2700kg. Net: ${updatedQuantity} Qtl`;
                 officer = 'Weighbridge Operator';
               } else if (b.status === 'WEIGHED') {
                 nextStatus = 'PAYMENT_COMPLETED';

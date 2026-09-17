@@ -466,6 +466,7 @@ export const AdminView: React.FC = () => {
                               WEIGHED: 'MSP_BILLED',
                               MSP_BILLED: 'PAYMENT_COMPLETED',
                               PAYMENT_COMPLETED: 'PAYMENT_COMPLETED',
+      REJECTED: 'REJECTED',
                             };
                             updateBookingStatus(b.id, nextStageMap[b.status], 'Admin Override', 'Admin Supervisor');
                           }}

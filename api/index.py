@@ -47,7 +47,7 @@ try:
 except Exception as e:
     print("DB Init Error:", e)
 
-scanned_tokens = set()
+scanned_tokens = {}
 
 # --- Legacy Voice/TTS (if still hitting Vercel instead of local) ---
 @app.get("/api/tts")
@@ -148,14 +148,15 @@ async def get_msp_rates(location: str = "Madhya Pradesh"):
 @app.get("/api/scan-wait")
 async def scan_wait(token: str):
     if token in scanned_tokens:
-        scanned_tokens.remove(token)
-        return JSONResponse({"scanned": True})
+        payload = scanned_tokens.pop(token)
+        return JSONResponse({"scanned": True, "payload": payload})
     return JSONResponse({"scanned": False})
 
 @app.post("/api/scan-trigger")
 async def scan_trigger(request: Request):
     data = await request.json()
     token = data.get("token")
+    payload = data.get("payload") or {}
     if token:
-        scanned_tokens.add(token)
+        scanned_tokens[token] = payload
     return JSONResponse({"success": True})
