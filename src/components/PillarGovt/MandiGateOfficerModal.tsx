@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext';
 const API_BASE = (window as any).Capacitor && (window as any).Capacitor.isNative ? 'https://kisantrack.vercel.app' : '';
 
 export const MandiGateOfficerModal: React.FC = () => {
-  const { isOfficerScannerOpen, setIsOfficerScannerOpen, bookings, createBooking, playFeedbackTone, activePillar } = useApp();
+  const { isOfficerScannerOpen, setIsOfficerScannerOpen, bookings, createBooking, playFeedbackTone, activePillar, updateBookingStatus } = useApp();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const bookingsRef = React.useRef(bookings);
@@ -123,11 +123,26 @@ export const MandiGateOfficerModal: React.FC = () => {
       rejected: moistVal > 12 || brokenVal > 2
     };
 
-    fetch(`${API_BASE}/api/scan-trigger`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: currentBooking?.tokenNumber, payload })
-    }).catch(() => {});
+    if (currentBooking) {
+      if (payload.rejected) {
+        updateBookingStatus(
+          currentBooking.id, 
+          'REJECTED' as any, 
+          `Your crop doesn't meet the required standards. Token expired. (Moisture: ${payload.moisture}%, Broken: ${payload.brokenGrains}%)`, 
+          'APMC Quality Assay', 
+          false
+        );
+      } else {
+        updateBookingStatus(
+          currentBooking.id, 
+          'QUALITY_VERIFIED', 
+          `Moisture ${payload.moisture}%, Grade-A verified`, 
+          'APMC Quality Assay', 
+          false, 
+          { estimatedQuantityQuintals: parseFloat(actualWeight) }
+        );
+      }
+    }
     
     setScanResult(null);
     setActualWeight('');
@@ -231,11 +246,33 @@ export const MandiGateOfficerModal: React.FC = () => {
               ) : (
                 <button 
                   onClick={() => {
-                    fetch(`${API_BASE}/api/scan-trigger`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ token: currentBooking.tokenNumber, payload: {} })
-                    }).catch(() => {});
+                    if (currentBooking) {
+                      let nextStatus: any = 'IN_TRANSIT';
+                      let remarks = 'Token verified.';
+                      let officer = 'APMC Officer';
+                      
+                      if (currentBooking.status === 'BOOKED') {
+                        nextStatus = 'IN_TRANSIT'; remarks = 'Proceeding to Mandi Gate.'; officer = 'APMC Dispatch Officer';
+                      } else if (currentBooking.status === 'IN_TRANSIT') {
+                        nextStatus = 'ARRIVED_AT_GATE'; remarks = 'Arrived at Gate 3.'; officer = 'APMC Entry Officer';
+                      } else if (currentBooking.status === 'QUALITY_VERIFIED') {
+                        nextStatus = 'WEIGHED'; remarks = 'Electronic Weighbridge Complete.'; officer = 'Weighbridge Operator';
+                      } else if (currentBooking.status === 'WEIGHED') {
+                        nextStatus = 'PAYMENT_COMPLETED'; remarks = 'PFMS DBT Payment Cleared'; officer = 'Treasury Officer';
+                      }
+                      
+                      const randomNum = Math.floor(1000 + Math.random() * 9000);
+                      const newToken = `KT-${(currentBooking.state || 'MP').slice(0, 2).toUpperCase()}-2026-${randomNum}`;
+                      
+                      updateBookingStatus(
+                        currentBooking.id, 
+                        nextStatus, 
+                        remarks, 
+                        officer, 
+                        false, 
+                        { tokenNumber: newToken }
+                      );
+                    }
                     setScanResult(null);
                   }}
                   className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"

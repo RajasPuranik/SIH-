@@ -142,7 +142,7 @@ interface AppContextType {
   setActiveBookingId: (id: string) => void;
   getActiveBooking: () => SlotBooking | undefined;
   createBooking: (newBooking: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'> & { tokenNumber?: string }, skipBroadcast?: boolean) => SlotBooking;
-  updateBookingStatus: (id: string, newStatus: SlotStatus, remarks?: string, officerName?: string, skipBroadcast?: boolean) => void;
+  updateBookingStatus: (id: string, newStatus: SlotStatus, remarks?: string, officerName?: string, skipBroadcast?: boolean, extraData?: any) => void;
 
   // Order Book & Pillar 2 state
   orderBook: OrderBookItem[];
@@ -783,7 +783,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     newStatus: SlotStatus,
     remarks: string = '',
     officerName?: string,
-    skipBroadcast: boolean = false
+    skipBroadcast: boolean = false,
+    extraData?: any
   ) => {
     let pushedBooking: SlotBooking | null = null;
     setBookings((prev) =>
@@ -804,7 +805,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             officerName,
           },
         ];
-        const updatedBooking = { ...booking, status: newStatus, statusHistory: updatedHistory };
+        const updatedBooking = { ...booking, status: newStatus, statusHistory: updatedHistory, ...(extraData || {}) };
         if (newStatus === 'QUALITY_VERIFIED' && !updatedBooking.qualityCheck) {
           updatedBooking.qualityCheck = {
             moisturePercent: 11.4,
