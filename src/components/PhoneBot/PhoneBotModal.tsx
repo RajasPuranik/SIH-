@@ -31,6 +31,8 @@ import {
 } from '../../services/phoneBotEngine';
 import { AudioRecorder, transcribeWavWithApi } from '../../services/audioRecorder';
 
+const API_BASE = (window as any).Capacitor && (window as any).Capacitor.isNative ? 'https://kisantrack.vercel.app' : '';
+
 export const PhoneBotModal: React.FC = () => {
   const {
     isPhoneBotOpen,
@@ -196,7 +198,7 @@ export const PhoneBotModal: React.FC = () => {
     }
 
     const voiceName = BOT_LANGUAGES.find((l) => l.code === currentLang)?.voice || 'hi-IN-SwaraNeural';
-    const audioUrl = `/api/tts?text=${encodeURIComponent(text)}&lang=${currentLang}&voice=${voiceName}`;
+    const audioUrl = `${API_BASE}/api/tts?text=${encodeURIComponent(text)}&lang=${currentLang}&voice=${voiceName}`;
 
     try {
       const audio = new Audio(audioUrl);

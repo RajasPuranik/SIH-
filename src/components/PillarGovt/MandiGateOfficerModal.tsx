@@ -3,6 +3,8 @@ import { Camera, X, CheckCircle2, AlertTriangle, Scan, Scale, Droplet, Sprout } 
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useApp } from '../../context/AppContext';
 
+const API_BASE = (window as any).Capacitor && (window as any).Capacitor.isNative ? 'https://kisantrack.vercel.app' : '';
+
 export const MandiGateOfficerModal: React.FC = () => {
   const { isOfficerScannerOpen, setIsOfficerScannerOpen, bookings, createBooking, playFeedbackTone, activePillar } = useApp();
   const [scanResult, setScanResult] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export const MandiGateOfficerModal: React.FC = () => {
       rejected: moistVal > 12 || brokenVal > 2
     };
 
-    fetch('/api/scan-trigger', {
+    fetch(`${API_BASE}/api/scan-trigger`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: currentBooking?.tokenNumber, payload })
@@ -229,7 +231,7 @@ export const MandiGateOfficerModal: React.FC = () => {
               ) : (
                 <button 
                   onClick={() => {
-                    fetch('/api/scan-trigger', {
+                    fetch(`${API_BASE}/api/scan-trigger`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ token: currentBooking.tokenNumber, payload: {} })

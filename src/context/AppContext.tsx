@@ -179,6 +179,8 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const API_BASE = (window as any).Capacitor && (window as any).Capacitor.isNative ? 'https://kisantrack.vercel.app' : '';
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activePillar, setActivePillar] = useState<ActivePillar>('govt');
   const [userRole, setUserRoleState] = useState<UserRole>('farmer');
@@ -210,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const syncWithBackend = async () => {
       try {
-        const res = await fetch('/api/bookings');
+        const res = await fetch(`${API_BASE}/api/bookings`);
         if (res.ok) {
           const dbBookings = await res.json();
           if (dbBookings && dbBookings.length > 0) {
@@ -265,7 +267,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
           } else {
             bookingsRef.current.forEach(b => {
-              fetch('/api/bookings', { method: 'POST', body: JSON.stringify(b) }).catch(() => {});
+              fetch(`${API_BASE}/api/bookings`, { method: 'POST', body: JSON.stringify(b) }).catch(() => {});
             });
           }
         }
@@ -610,7 +612,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       for (const b of myBookings) {
         try {
-          const res = await fetch(`/api/scan-wait?token=${b.tokenNumber}`);
+          const res = await fetch(`${API_BASE}/api/scan-wait?token=${b.tokenNumber}`);
           if (res.ok) {
             const data = await res.json();
             if (data.scanned) {
@@ -696,7 +698,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
               
               setBookings(prev => prev.map(bk => bk.id === b.id ? updatedBk : bk));
-              fetch('/api/bookings', { method: 'POST', body: JSON.stringify(updatedBk) }).catch(e => console.warn(e));
+              fetch(`${API_BASE}/api/bookings`, { method: 'POST', body: JSON.stringify(updatedBk) }).catch(e => console.warn(e));
 
               addNotification({
                 type: 'SYSTEM',
@@ -757,7 +759,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBookings((prev) => [newBooking, ...prev]);
     setActiveBookingId(newId);
-    fetch('/api/bookings', { method: 'POST', body: JSON.stringify(newBooking) }).catch(e => console.warn(e));
+    fetch(`${API_BASE}/api/bookings`, { method: 'POST', body: JSON.stringify(newBooking) }).catch(e => console.warn(e));
     playFeedbackTone('success');
     addNotification({
       type: 'SMS',
@@ -848,7 +850,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
 
         if (!skipBroadcast) {
-          fetch('/api/bookings', {
+          fetch(`${API_BASE}/api/bookings`, {
             method: 'POST',
             body: JSON.stringify(pushedBooking)
           }).catch(e => console.warn('api err', e));
