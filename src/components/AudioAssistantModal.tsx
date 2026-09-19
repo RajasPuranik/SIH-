@@ -13,23 +13,39 @@ import {
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 
+interface ChatBubble {
+  id: number;
+  type: 'bot' | 'user';
+  text: string;
+  speaking?: boolean;
+}
+
 export const AudioAssistantModal: React.FC = () => {
   const { isAudioAssistantOpen, setIsAudioAssistantOpen, crops, selectedCropId, bookings } = useApp();
   const { language } = useLanguage();
 
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChatBubble[]>([
+    { id: 0, type: 'bot', text: 'नमस्ते! मैं किसान वाणी हूँ। नीचे दिए गए विकल्प चुनें या बोलें।' }
+  ]);
   const currentCrop = crops.find(c => c.id === selectedCropId) || crops[0];
   const activeBooking = bookings[0];
 
-  const handleSpeak = (textToSpeak: string) => {
+  const handleSpeak = (textToSpeak: string, queryLabel: string) => {
+    // Add user bubble
+    setChatHistory(prev => [
+      ...prev,
+      { id: Date.now(), type: 'user', text: queryLabel },
+      { id: Date.now() + 1, type: 'bot', text: textToSpeak, speaking: true }
+    ]);
+
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // cancel any active speech
+      window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.rate = 0.95;
       utterance.pitch = 1.0;
 
-      // Select appropriate voice if available
       const voices = window.speechSynthesis.getVoices();
       const hindiVoice = voices.find(v => v.lang.includes('hi') || v.lang.includes('IN'));
       if (hindiVoice) {
@@ -37,8 +53,14 @@ export const AudioAssistantModal: React.FC = () => {
       }
 
       utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setChatHistory(prev => prev.map(b => ({ ...b, speaking: false })));
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setChatHistory(prev => prev.map(b => ({ ...b, speaking: false })));
+      };
 
       window.speechSynthesis.speak(utterance);
     } else {
@@ -50,115 +72,142 @@ export const AudioAssistantModal: React.FC = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      setChatHistory(prev => prev.map(b => ({ ...b, speaking: false })));
     }
   };
 
   if (!isAudioAssistantOpen) return null;
 
+  const langLabel = language === 'hi' ? 'हिन्दी' : language === 'mr' ? 'मराठी' : language === 'pa' ? 'ਪੰਜਾਬੀ' : 'English';
+
+  const queryOptions = [
+    {
+      label: '📊 आज के बाजार भाव',
+      sublabel: "Today's MSP & private rates",
+      text: `नमस्ते किसान भाई! आज इंदौर मंडी में गेहूँ का सरकारी न्यूनतम समर्थन मूल्य ₹2,425 प्रति क्विंटल है, और निजी बाजार भाव ₹2,580 प्रति क्विंटल चल रहा है। आज निजी बाजार में ₹155 अधिक मिल रहा है।`,
+    },
+    {
+      label: '🎫 मेरे टोकन की स्थिति',
+      sublabel: 'Token & queue status',
+      text: `आपका टोकन नंबर ${activeBooking?.tokenNumber || 'N/A'} है। आपकी वर्तमान स्थिति है: क्वालिटी चेक एवं नमी परीक्षण पूरा हो चुका है। मंडी में अनुमानित प्रतीक्षा समय 15 मिनट है।`,
+    },
+    {
+      label: '🤖 AgroAI — कब बेचें?',
+      sublabel: 'AI sell/hold recommendation',
+      text: `AgroAI की सलाह: अगले 7 दिनों में गेहूँ के भाव में 4.8 प्रतिशत की बढ़ोतरी की संभावना है। हमारी सिफारिश है कि यदि संभव हो तो स्टॉक को होल्ड करें।`,
+    },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white shadow-xs">
-              <Volume2 className="w-5 h-5 animate-pulse" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm">किसान वाणी (Kisan Vaani Audio Desk)</h3>
-              <p className="text-[11px] text-amber-100">Voice-Powered Mandi & Status Assistant</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              handleStopSpeech();
-              setIsAudioAssistantOpen(false);
-            }}
-            className="text-amber-100 hover:text-white p-1 rounded-lg"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-5 space-y-4 text-xs">
-          {/* Audio Wave Visualizer Simulation */}
-          <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex flex-col items-center justify-center text-center">
-            <div className="flex items-center gap-1.5 h-8 mb-2">
-              {[40, 70, 90, 60, 85, 50, 95, 75, 45, 80].map((h, i) => (
-                <span
-                  key={i}
-                  style={{ height: isSpeaking ? `${h}%` : '20%' }}
-                  className={`w-1 bg-amber-500 rounded-full transition-all duration-150 ${isSpeaking ? 'animate-pulse' : ''}`}
-                />
-              ))}
-            </div>
-            <span className="font-bold text-amber-900 text-sm">
-              {isSpeaking ? 'बोल रहे हैं (Speaking now...)' : 'सुनने के लिए नीचे दिए गए विकल्प चुनें'}
-            </span>
-            <span className="text-[11px] text-amber-700 mt-0.5">
-              Natural Indian English & हिन्दी Speech Synthesis
-            </span>
-          </div>
-
-          {/* Quick Voice Queries */}
-          <div className="space-y-2">
-            <span className="font-bold text-slate-700 uppercase tracking-wider block text-[10px]">
-              Tap to Listen (ध्वनि सुनें):
-            </span>
-
-            <button
-              onClick={() => handleSpeak(
-                `नमस्ते किसान भाई! आज इंदौर मंडी में गेहूँ का सरकारी न्यूनतम समर्थन मूल्य ₹2,425 प्रति क्विंटल है, और निजी बाजार भाव ₹2,580 प्रति क्विंटल चल रहा है। आज निजी बाजार में ₹155 अधिक मिल रहा है।`
-              )}
-              className="w-full p-3 bg-slate-50 hover:bg-amber-50 active:bg-amber-100 rounded-xl border border-slate-200 text-left transition flex items-center justify-between cursor-pointer"
-            >
-              <div>
-                <span className="font-bold text-slate-800 block">1. आज के सरकारी एवं निजी बाजार भाव</span>
-                <span className="text-[11px] text-slate-500">Listen to today's MSP and private rates</span>
+    <>
+      {/* Backdrop — mobile: full screen, desktop: semi-transparent */}
+      <div className="fixed inset-0 z-50 sm:flex sm:items-end sm:justify-end sm:p-5 bg-slate-950/60 sm:bg-transparent sm:pointer-events-none">
+        {/* Panel */}
+        <div className="
+          w-full h-full sm:h-auto sm:w-96 sm:max-h-[75vh]
+          bg-white sm:rounded-2xl sm:shadow-2xl sm:border sm:border-slate-200
+          flex flex-col animate-slide-up sm:animate-fade-in-up
+          sm:pointer-events-auto
+        ">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 py-3 sm:rounded-t-2xl flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                <Mic className="w-5 h-5" />
               </div>
-              <Play className="w-4 h-4 text-amber-600 shrink-0" />
-            </button>
-
-            <button
-              onClick={() => handleSpeak(
-                `आपका टोकन नंबर ${activeBooking.tokenNumber} है। आपकी वर्तमान स्थिति है: क्वालिटी चेक एवं नमी परीक्षण पूरा हो चुका है। मंडी में अनुमानित प्रतीक्षा समय 15 मिनट है।`
-              )}
-              className="w-full p-3 bg-slate-50 hover:bg-amber-50 active:bg-amber-100 rounded-xl border border-slate-200 text-left transition flex items-center justify-between cursor-pointer"
-            >
               <div>
-                <span className="font-bold text-slate-800 block">2. मेरे टोकन की लाइव स्थिति</span>
-                <span className="text-[11px] text-slate-500">Check current token & queue position</span>
+                <h3 className="font-bold text-sm">किसान वाणी</h3>
+                <p className="text-[10px] text-amber-100 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                  {langLabel} • Voice Assistant
+                </p>
               </div>
-              <Play className="w-4 h-4 text-amber-600 shrink-0" />
-            </button>
-
+            </div>
             <button
-              onClick={() => handleSpeak(
-                `AgroAI की सलाह: अगले 7 दिनों में गेहूँ के भाव में 4.8 प्रतिशत की बढ़ोतरी की संभावना है। हमारी सिफारिश है कि यदि संभव हो तो स्टॉक को होल्ड करें।`
-              )}
-              className="w-full p-3 bg-slate-50 hover:bg-amber-50 active:bg-amber-100 rounded-xl border border-slate-200 text-left transition flex items-center justify-between cursor-pointer"
+              onClick={() => {
+                handleStopSpeech();
+                setIsAudioAssistantOpen(false);
+              }}
+              className="text-amber-100 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
             >
-              <div>
-                <span className="font-bold text-slate-800 block">3. फसल कब बेचें? (AgroAI सलाह)</span>
-                <span className="text-[11px] text-slate-500">AgroAI harvesting & selling recommendation</span>
-              </div>
-              <Play className="w-4 h-4 text-amber-600 shrink-0" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Stop button */}
-          {isSpeaking && (
-            <button
-              onClick={handleStopSpeech}
-              className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-            >
-              <VolumeX className="w-4 h-4" />
-              <span>आवाज बंद करें (Stop Voice)</span>
-            </button>
-          )}
+          {/* Waveform visualizer */}
+          <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-center gap-1">
+            {[40, 70, 90, 60, 85, 50, 95, 75, 45, 80, 65, 55].map((h, i) => (
+              <span
+                key={i}
+                style={{ '--bar-target': `${h}%` } as React.CSSProperties}
+                className={`w-1 rounded-full transition-all duration-200 ${
+                  isSpeaking
+                    ? 'bg-amber-500 voice-bar-active'
+                    : 'bg-amber-200 h-[20%]'
+                }`}
+              />
+            ))}
+            <span className="ml-2 text-[11px] font-semibold text-amber-800">
+              {isSpeaking ? 'बोल रहे हैं...' : 'Ready'}
+            </span>
+          </div>
+
+          {/* Chat area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+            {chatHistory.map((bubble) => (
+              <div
+                key={bubble.id}
+                className={`flex animate-fade-in-up ${bubble.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${
+                  bubble.type === 'user'
+                    ? 'bg-emerald-600 text-white rounded-br-sm'
+                    : 'bg-slate-100 text-slate-800 rounded-bl-sm border border-slate-200'
+                }`}>
+                  {bubble.speaking && (
+                    <div className="flex items-center gap-1 mb-1">
+                      <Volume2 className="w-3 h-3 text-amber-500 animate-pulse" />
+                      <span className="text-[10px] text-amber-600 font-semibold">Speaking...</span>
+                    </div>
+                  )}
+                  {bubble.text}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Query suggestions */}
+          <div className="border-t border-slate-100 p-3 space-y-2 shrink-0 bg-slate-50 sm:rounded-b-2xl">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Tap to Listen (ध्वनि सुनें)
+            </span>
+            {queryOptions.map((q, i) => (
+              <button
+                key={i}
+                onClick={() => handleSpeak(q.text, q.label)}
+                className="w-full p-2.5 bg-white hover:bg-amber-50 active:bg-amber-100 rounded-xl border border-slate-200 text-left transition flex items-center justify-between cursor-pointer group"
+              >
+                <div>
+                  <span className="font-bold text-slate-800 text-xs block">{q.label}</span>
+                  <span className="text-[10px] text-slate-400">{q.sublabel}</span>
+                </div>
+                <Play className="w-3.5 h-3.5 text-amber-500 shrink-0 group-hover:text-amber-600" />
+              </button>
+            ))}
+
+            {/* Stop button */}
+            {isSpeaking && (
+              <button
+                onClick={handleStopSpeech}
+                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer text-xs"
+              >
+                <VolumeX className="w-4 h-4" />
+                <span>आवाज बंद करें (Stop)</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
