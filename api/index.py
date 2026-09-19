@@ -160,3 +160,56 @@ async def scan_trigger(request: Request):
     if token:
         scanned_tokens[token] = payload
     return JSONResponse({"success": True})
+
+
+@app.post("/api/send-sms")
+async def send_sms(request: Request):
+    try:
+        data = await request.json()
+        phone = data.get("phone")
+        message = data.get("message")
+        
+        # Check for Twilio Credentials
+        twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+        twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        twilio_from = os.environ.get("TWILIO_FROM_NUMBER")
+        
+        if twilio_sid and twilio_token and twilio_from:
+            import urllib.request
+            import urllib.parse
+            import base64
+            
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
+            auth = base64.b64encode(f"{twilio_sid}:{twilio_token}".encode()).decode()
+            
+            req = urllib.request.Request(url, method="POST")
+            req.add_header("Authorization", f"Basic {auth}")
+            req.add_header("Content-Type", "application/x-www-form-urlencoded")
+            
+            post_data = urllib.parse.urlencode({
+                "To": phone,
+                "From": twilio_from,
+                "Body": message
+            }).encode()
+            
+            urllib.request.urlopen(req, data=post_data)
+            return JSONResponse({"success": True, "provider": "twilio"})
+                
+        # Fallback to Textbelt for hackathon demo (1 free SMS per day)
+        import urllib.request
+        import urllib.parse
+        
+        url = "https://textbelt.com/text"
+        req = urllib.request.Request(url, method="POST")
+        req.add_header("Content-Type", "application/x-www-form-urlencoded")
+        post_data = urllib.parse.urlencode({
+            "phone": phone,
+            "message": message,
+            "key": "textbelt"
+        }).encode()
+        
+        response = urllib.request.urlopen(req, data=post_data)
+        res_json = json.loads(response.read().decode())
+        return JSONResponse({"success": res_json.get("success", False), "provider": "textbelt", "quotaRemaining": res_json.get("quotaRemaining")})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})

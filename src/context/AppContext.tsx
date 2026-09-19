@@ -850,6 +850,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           message: `Your token has successfully advanced to the '${stageName}' stage. ${remarks}`
         });
 
+        fetch(`${API_BASE}/api/send-sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            phone: (pushedBooking as any).farmerPhone, 
+            message: `KisanTrack: Token ${(pushedBooking as any).tokenNumber} advanced to ${stageName}.`
+          })
+        }).catch(() => {});
+
         if (!skipBroadcast) {
           fetch(`${API_BASE}/api/bookings`, {
             method: 'POST',
