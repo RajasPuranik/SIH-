@@ -76,7 +76,7 @@ export const TickerBar: React.FC = () => {
 
                 {isAboveMSP ? (
                   <span className="text-[9px] px-1.5 py-0.2 bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 rounded font-medium">
-                    +₹{spread} {t('vsMSP')}
+                    +₹{Number(spread).toFixed(2)} {t('vsMSP')}
                   </span>
                 ) : (
                   <span className="text-[9px] px-1.5 py-0.2 bg-amber-950/80 text-amber-300 border border-amber-800/40 rounded font-medium flex items-center gap-0.5">

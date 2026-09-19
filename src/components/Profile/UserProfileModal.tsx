@@ -62,6 +62,10 @@ export const UserProfileModal: React.FC = () => {
   
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (phone.trim().length !== 10) {
+      alert('Mobile number must be exactly 10 digits.');
+      return;
+    }
     updateUserProfile({
       name,
       phone: `+91 ${phone}`,

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Language } from '../types';
 
 interface Translations {
@@ -221,6 +221,20 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('en');
+
+  useEffect(() => {
+    // Force Google Translate change
+    const triggerGoogleTranslate = (langCode: string, attempts = 0) => {
+      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (select) {
+        select.value = langCode;
+        select.dispatchEvent(new Event('change'));
+      } else if (attempts < 10) {
+        setTimeout(() => triggerGoogleTranslate(langCode, attempts + 1), 500);
+      }
+    };
+    triggerGoogleTranslate(language);
+  }, [language]);
 
   const t = (key: string): string => {
     if (TRANSLATIONS[key] && TRANSLATIONS[key][language]) {
