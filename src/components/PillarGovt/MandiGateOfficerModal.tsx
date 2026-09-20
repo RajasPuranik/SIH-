@@ -151,8 +151,8 @@ export const MandiGateOfficerModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center sm:p-4 bg-slate-950/70 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-md rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200 max-h-dvh sm:max-h-[90vh] flex flex-col animate-slide-up sm:animate-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
         <div className="bg-blue-900 text-white p-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-blue-500/30 text-blue-300 flex items-center justify-center">

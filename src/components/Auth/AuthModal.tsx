@@ -203,8 +203,8 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-xl rounded-none sm:rounded-2xl shadow-xl overflow-hidden border-0 sm:border border-slate-200 max-h-dvh sm:max-h-[92vh] flex flex-col animate-slide-up sm:animate-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl overflow-hidden border border-slate-200 max-h-[92vh] flex flex-col">
         {/* Top Header */}
         <div className="bg-slate-50 border-b border-slate-200 p-5 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">

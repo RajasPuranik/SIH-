@@ -21,19 +21,19 @@ export const TickerBar: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900 text-slate-100 border-b border-slate-800 py-2.5 shadow-inner select-none">
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-3 sm:gap-6">
-        <div className="flex items-center gap-2 pr-3 sm:pr-4 border-r border-slate-700 shrink-0">
-          <span className="flex h-2 w-2 relative shrink-0">
+    <div className="bg-slate-900 text-slate-100 border-b border-slate-800 py-2.5 overflow-x-auto shadow-inner select-none">
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between min-w-max gap-6">
+        <div className="flex items-center gap-2 pr-4 border-r border-slate-700">
+          <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider text-emerald-400">
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
             {t('agriTickerLive')}:
           </span>
         </div>
 
-        <div className="flex-1 min-w-0 flex items-center gap-4 sm:gap-6 overflow-x-auto py-0.5 snap-x snap-mandatory">
+        <div className="flex items-center gap-6 overflow-x-auto py-0.5">
           {crops.map((crop) => {
             const spread = crop.currentPrivatePrice - crop.mspRate;
             const isAboveMSP = spread >= 0;
@@ -44,7 +44,7 @@ export const TickerBar: React.FC = () => {
               <div
                 key={crop.id}
                 onClick={() => setSelectedCropId(crop.id)}
-                className={`flex items-center gap-2.5 px-3 py-1 rounded-lg text-xs cursor-pointer transition border snap-start min-w-fit shrink-0 ${
+                className={`flex items-center gap-2.5 px-3 py-1 rounded-lg text-xs cursor-pointer transition border ${
                   isSelected 
                     ? 'bg-slate-800 border-emerald-500/50 shadow-xs' 
                     : 'bg-slate-850 hover:bg-slate-800 border-slate-800'
@@ -89,7 +89,7 @@ export const TickerBar: React.FC = () => {
           })}
         </div>
 
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 pl-4 border-l border-slate-700 shrink-0">
+        <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 pl-4 border-l border-slate-700">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span>{t('mandiSynced')}</span>
         </div>

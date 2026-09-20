@@ -101,8 +101,8 @@ export const UserProfileModal: React.FC = () => {
   const roleInfo = getRoleBadge();
 
   return (
-    <div className="fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center sm:p-4 bg-slate-950/80 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-2xl rounded-none sm:rounded-3xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200 max-h-dvh sm:max-h-[92vh] flex flex-col animate-slide-up sm:animate-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] flex flex-col">
         {/* Top Header Card */}
         <div className={`bg-gradient-to-r ${roleInfo.gradient} text-white p-6 relative shrink-0`}>
           <div className="flex items-start justify-between">
