@@ -281,7 +281,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
     syncWithBackend();
-    const interval = setInterval(syncWithBackend, 3000);
+    const interval = setInterval(syncWithBackend, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -721,7 +721,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (e) {
         }
       }
-    }, 2000);
+    }, 800);
 
     return () => clearInterval(scanWaitInterval);
   }, [currentUser]);

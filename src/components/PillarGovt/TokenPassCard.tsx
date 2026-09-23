@@ -133,6 +133,20 @@ export const TokenPassCard: React.FC<TokenPassCardProps> = ({ booking }) => {
                 </span>
               </div>
               
+              <div>
+                <span className="text-slate-400 block text-[11px] flex items-center gap-1 mb-0.5">
+                  <ShieldCheck className="w-3 h-3 text-slate-400" /> Token Progression
+                </span>
+                <ul className="space-y-0.5 mt-1">
+                  {booking.statusHistory?.map((h, i) => (
+                    <li key={i} className="flex items-center gap-1.5 text-[10px] text-slate-600 font-medium leading-tight">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="truncate">{h.stage.replace(/_/g, " ")}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
             </div>
           </div>
         </div>

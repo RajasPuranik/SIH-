@@ -47,7 +47,7 @@ export const MandiGateOfficerModal: React.FC = () => {
     const timer = setTimeout(() => {
       if (!isMounted) return;
       try {
-        scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, false);
+        scanner = new Html5QrcodeScanner("qr-reader", { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, false);
         scannerRef.current = scanner;
         scanner.render((text) => {
           handleTokenScanned(text);
