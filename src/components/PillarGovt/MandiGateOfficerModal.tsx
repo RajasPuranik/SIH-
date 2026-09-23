@@ -20,6 +20,8 @@ export const MandiGateOfficerModal: React.FC = () => {
     bookingsRef.current = bookings;
   }, [bookings]);
 
+  const scannerRef = React.useRef<Html5QrcodeScanner | null>(null);
+
   useEffect(() => {
     // If URL has ?scan=... auto trigger
     const params = new URLSearchParams(window.location.search);
@@ -35,21 +37,31 @@ export const MandiGateOfficerModal: React.FC = () => {
   useEffect(() => {
     if (!isOfficerScannerOpen || scanResult) return;
 
+    let isMounted = true;
     let scanner: Html5QrcodeScanner | null = null;
-    try {
-      scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, false);
-      scanner.render((text) => {
-        scanner?.clear().catch(() => {});
-        handleTokenScanned(text);
-      }, () => {});
-    } catch (e) {
-      console.error(e);
-    }
+
+    // Use a small delay to avoid React 18 Strict Mode double initialization
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+      try {
+        scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, false);
+        scanner.render((text) => {
+          if (scanner) {
+            scanner.clear().catch(console.error);
+          }
+          handleTokenScanned(text);
+        }, () => {});
+      } catch (e) {
+        console.error("Scanner init error:", e);
+      }
+    }, 50);
 
     return () => {
-      try {
-        scanner?.clear().catch(() => {});
-      } catch (e) {}
+      isMounted = false;
+      clearTimeout(timer);
+      if (scanner) {
+        scanner.clear().catch(console.error);
+      }
     };
   }, [isOfficerScannerOpen, scanResult]);
 
@@ -151,8 +163,8 @@ export const MandiGateOfficerModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+    <div className="fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center sm:p-4 bg-slate-950/70 backdrop-blur-xs">
+      <div className="bg-white w-full max-w-md rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200 max-h-dvh sm:max-h-[90vh] flex flex-col animate-slide-up sm:animate-none">
         <div className="bg-blue-900 text-white p-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-blue-500/30 text-blue-300 flex items-center justify-center">
@@ -179,16 +191,16 @@ export const MandiGateOfficerModal: React.FC = () => {
             </div>
           )}
 
-          {!scanResult ? (
-            <div className="space-y-4">
-              <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl overflow-hidden p-2">
-                <div id="qr-reader" className="w-full"></div>
-              </div>
-              <p className="text-center text-xs font-bold text-slate-500 flex items-center justify-center gap-1">
-                <Camera className="w-3.5 h-3.5" /> Point camera at Farmer's QR Gate Pass
-              </p>
+          <div className={scanResult ? 'hidden' : 'space-y-4'}>
+            <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl overflow-hidden p-2">
+              <div id="qr-reader" className="w-full"></div>
             </div>
-          ) : currentBooking ? (
+            <p className="text-center text-xs font-bold text-slate-500 flex items-center justify-center gap-1">
+              <Camera className="w-3.5 h-3.5" /> Point camera at Farmer's QR Gate Pass
+            </p>
+          </div>
+
+          {scanResult && currentBooking ? (
             <div className="space-y-4 text-center">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto border-4 border-emerald-50">
                 <CheckCircle2 className="w-8 h-8 text-emerald-600" />
