@@ -10,6 +10,7 @@ export const MandiGateOfficerModal: React.FC = () => {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const bookingsRef = React.useRef(bookings);
+  const isProcessingScanRef = React.useRef(false);
   
   // Quality Assay State
   const [actualWeight, setActualWeight] = useState('');
@@ -37,6 +38,8 @@ export const MandiGateOfficerModal: React.FC = () => {
   useEffect(() => {
     if (!isOfficerScannerOpen || scanResult) return;
 
+    isProcessingScanRef.current = false;
+
     let isMounted = true;
     let scanner: Html5QrcodeScanner | null = null;
 
@@ -45,10 +48,8 @@ export const MandiGateOfficerModal: React.FC = () => {
       if (!isMounted) return;
       try {
         scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, false);
+        scannerRef.current = scanner;
         scanner.render((text) => {
-          if (scanner) {
-            scanner.clear().catch(console.error);
-          }
           handleTokenScanned(text);
         }, () => {});
       } catch (e) {
@@ -68,6 +69,9 @@ export const MandiGateOfficerModal: React.FC = () => {
   if (!isOfficerScannerOpen) return null;
 
   const handleTokenScanned = (tokenText: string) => {
+    if (isProcessingScanRef.current) return;
+    isProcessingScanRef.current = true;
+
     tokenText = (tokenText || "").trim().toUpperCase();
     
     // If it's a URL from the QR code (e.g. https://kisantrack.vercel.app/?scan=KT-MP-2026-1234)
@@ -88,10 +92,16 @@ export const MandiGateOfficerModal: React.FC = () => {
     if (!booking) {
       setErrorMsg('Invalid QR Code: Token not found in database.');
       playFeedbackTone('alert');
-      setTimeout(() => setErrorMsg(''), 3000);
+      setTimeout(() => {
+        setErrorMsg('');
+        isProcessingScanRef.current = false;
+      }, 3000);
       return;
     }
 
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch(console.error);
+    }
     setScanResult(booking.tokenNumber);
     playFeedbackTone('success');
   };
