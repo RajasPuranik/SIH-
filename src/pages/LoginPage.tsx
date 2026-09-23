@@ -72,11 +72,11 @@ const ROLES = [
             <div className="text-[10px] text-emerald-300 uppercase tracking-wider mt-1">SIH 2026 • किसान सेतु</div>
           </div>
         </div>
-        <div className="relative space-y-4 max-w-sm">
-          <h1 className="text-3xl xl:text-4xl font-bold leading-tight">
+        <div className="relative space-y-6 max-w-2xl">
+          <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold leading-tight">
             One portal for the whole mandi chain.
           </h1>
-          <p className="text-sm text-emerald-200 leading-relaxed">
+          <p className="text-base xl:text-lg 2xl:text-xl text-emerald-200 leading-relaxed">
             Farmers, APMC officers, corporate buyers, and administrators each get a
             purpose-built view — MSP booking, gate scanning, exchange bidding, and
             national oversight, all in one place.
@@ -89,7 +89,7 @@ const ROLES = [
 
       {/* Right content panel */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-10 lg:overflow-y-auto">
-        <div className={`w-full ${narrow ? 'max-w-sm' : 'max-w-xl'}`}>
+        <div className={`w-full ${narrow ? 'max-w-md' : 'max-w-3xl'}`}>
           {/* Brand strip — mobile only, since the left panel carries it on desktop */}
           <div className="flex items-center justify-center gap-2 mb-6 lg:hidden">
             <span className="text-2xl">🌾</span>
@@ -368,33 +368,33 @@ export const LoginPage: React.FC = () => {
   /* ─────────── ROLE SELECTION (default) ─────────── */
   return (
     <PageShell>
-      <div className="space-y-4">
+      <div className="space-y-6 lg:space-y-8">
         {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-slate-200" />
-          <span className="text-xs text-slate-400">or login / register by role</span>
+          <span className="text-sm font-medium text-slate-400">or login / register by role</span>
           <div className="flex-1 h-px bg-slate-200" />
         </div>
 
         {/* Role list — single column on mobile, 2-up card grid from tablet up */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xl:gap-6">
           {ROLES.map((r) => (
             <button
               key={r.role}
               onClick={() => { setSelectedRole(r.role); setMode('login'); }}
-              className={`flex items-start gap-3 px-4 py-3.5 bg-white hover:bg-slate-50 hover:shadow-sm transition cursor-pointer text-left rounded-xl border border-slate-200 border-l-4 ${r.accent}`}
+              className={`flex items-start gap-4 px-5 py-5 xl:px-6 xl:py-6 bg-white hover:bg-slate-50 hover:shadow-md transition cursor-pointer text-left rounded-2xl border border-slate-200 border-l-4 ${r.accent}`}
             >
-              <span className="text-xl shrink-0">{r.icon}</span>
+              <span className="text-2xl xl:text-3xl shrink-0 mt-0.5">{r.icon}</span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm text-slate-900">{r.title}</span>
-                  <span className={`text-[10px] font-bold border px-1.5 py-0.5 rounded-full shrink-0 ${r.badge}`}>
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  <span className="font-bold text-base xl:text-lg text-slate-900">{r.title}</span>
+                  <span className={`text-xs font-bold border px-2 py-0.5 rounded-full shrink-0 ${r.badge}`}>
                     {r.hindiTitle}
                   </span>
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">{r.desc}</div>
+                <div className="text-sm xl:text-base text-slate-500 leading-relaxed">{r.desc}</div>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-300 shrink-0 mt-1" />
+              <ArrowRight className="w-5 h-5 text-slate-300 shrink-0 mt-1.5 hidden xl:block" />
             </button>
           ))}
         </div>
