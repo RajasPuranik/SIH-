@@ -660,8 +660,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 officer = 'Treasury Officer';
               }
 
-              const randomNum = Math.floor(1000 + Math.random() * 9000);
-              const newToken = `KT-${(b.state || 'MP').slice(0, 2).toUpperCase()}-2026-${randomNum}`;
+              const chars = 'BCDFGHJKLMNPQRSTVWXYZ0123456789';
+              const randomSuffix = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+              const newToken = `KT-${(b.state || 'MP').slice(0, 2).toUpperCase()}-2026-${randomSuffix}`;
               
               const updatedHistory = [
                 ...b.statusHistory,
@@ -728,7 +729,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     newBookingData: Omit<SlotBooking, 'id' | 'tokenNumber' | 'status' | 'statusHistory'> & { tokenNumber?: string }
   ): SlotBooking => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const tokenNumber = newBookingData.tokenNumber || 'KT-' + newBookingData.state.slice(0, 2).toUpperCase() + '-2026-' + randomNum;
+    const chars = 'BCDFGHJKLMNPQRSTVWXYZ0123456789';
+    const randomSuffix = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const tokenNumber = newBookingData.tokenNumber || 'KT-' + newBookingData.state.slice(0, 2).toUpperCase() + '-2026-' + randomSuffix;
     const newId = 'bk-' + Date.now();
     const crop = crops.find((c) => c.id === newBookingData.cropId);
     const mspPrice = crop ? crop.mspRate : 2425;

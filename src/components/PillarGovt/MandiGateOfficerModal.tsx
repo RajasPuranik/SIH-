@@ -72,43 +72,24 @@ export const MandiGateOfficerModal: React.FC = () => {
     
     // If it's a URL from the QR code (e.g. https://kisantrack.vercel.app/?scan=KT-MP-2026-1234)
     if (tokenText.includes('SCAN=')) {
-      const match = tokenText.match(/SCAN=(KT-[A-Z0-9-]+)/);
+      const match = tokenText.match(/SCAN=(KT-[A-Z]{2}-\d{4}-[A-Z0-9]{4})/i);
       if (match && match[1]) {
-        tokenText = match[1];
+        tokenText = match[1].toUpperCase();
       }
     } else if (tokenText.includes('KT-')) {
-      const match = tokenText.match(/(KT-[A-Z0-9-]+)/);
+      const match = tokenText.match(/(KT-[A-Z]{2}-\d{4}-[A-Z0-9]{4})/i);
       if (match && match[1]) {
-        tokenText = match[1];
+        tokenText = match[1].toUpperCase();
       }
     }
 
     let booking = bookingsRef.current.find(b => b.tokenNumber === tokenText || b.id === tokenText);
     
     if (!booking) {
-      if (tokenText.startsWith('KT-')) {
-        booking = createBooking({
-          tokenNumber: tokenText,
-          farmerName: 'Demo Farmer (Cross-Device)',
-          farmerPhone: '+91 99999 99999',
-          aadhaarMasked: 'XXXX-XXXX-0000',
-          state: 'Madhya Pradesh',
-          district: 'Indore',
-          mandiName: 'Indore APMC Mandi',
-          cropId: 'wheat',
-          cropName: 'Wheat (गेहूँ)',
-          estimatedQuantityQuintals: 50,
-          vehicleType: 'Tractor Trolley',
-          vehicleNumber: 'MP-09-XX-0000',
-          bookingDate: new Date().toISOString().split('T')[0],
-          scheduledTimeSlot: '10:00 AM - 11:30 AM',
-        });
-      } else {
-        setErrorMsg('Invalid QR Code: Token not found in database.');
-        playFeedbackTone('alert');
-        setTimeout(() => setErrorMsg(''), 3000);
-        return;
-      }
+      setErrorMsg('Invalid QR Code: Token not found in database.');
+      playFeedbackTone('alert');
+      setTimeout(() => setErrorMsg(''), 3000);
+      return;
     }
 
     setScanResult(booking.tokenNumber);
@@ -273,8 +254,9 @@ export const MandiGateOfficerModal: React.FC = () => {
                         nextStatus = 'PAYMENT_COMPLETED'; remarks = 'PFMS DBT Payment Cleared'; officer = 'Treasury Officer';
                       }
                       
-                      const randomNum = Math.floor(1000 + Math.random() * 9000);
-                      const newToken = `KT-${(currentBooking.state || 'MP').slice(0, 2).toUpperCase()}-2026-${randomNum}`;
+                      const chars = 'BCDFGHJKLMNPQRSTVWXYZ0123456789';
+                      const randomSuffix = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                      const newToken = `KT-${(currentBooking.state || 'MP').slice(0, 2).toUpperCase()}-2026-${randomSuffix}`;
                       
                       updateBookingStatus(
                         currentBooking.id, 
