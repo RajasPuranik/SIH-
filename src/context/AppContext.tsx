@@ -267,7 +267,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
           } else {
             bookingsRef.current.forEach(b => {
-              fetch(`${API_BASE}/api/bookings`, { method: 'POST', body: JSON.stringify(b) }).catch(() => {});
+              fetch(`${API_BASE}/api/bookings`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(b) 
+              }).catch(() => {});
             });
           }
         }
@@ -698,7 +702,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
               
               setBookings(prev => prev.map(bk => bk.id === b.id ? updatedBk : bk));
-              fetch(`${API_BASE}/api/bookings`, { method: 'POST', body: JSON.stringify(updatedBk) }).catch(e => console.warn(e));
+              fetch(`${API_BASE}/api/bookings`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedBk) 
+              }).catch(e => console.warn(e));
 
               addNotification({
                 type: 'SYSTEM',
@@ -759,7 +767,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBookings((prev) => [newBooking, ...prev]);
     setActiveBookingId(newId);
-    fetch(`${API_BASE}/api/bookings`, { method: 'POST', body: JSON.stringify(newBooking) }).catch(e => console.warn(e));
+    fetch(`${API_BASE}/api/bookings`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newBooking) 
+    }).catch(e => console.warn(e));
     playFeedbackTone('success');
     addNotification({
       type: 'SMS',
@@ -786,87 +798,83 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     skipBroadcast: boolean = false,
     extraData?: any
   ) => {
-    let pushedBooking: SlotBooking | null = null;
-    setBookings((prev) =>
-      prev.map((booking) => {
-        if (booking.id !== id && booking.tokenNumber !== id) return booking;
-        const updatedHistory = [
-          ...booking.statusHistory,
-          {
-            stage: newStatus,
-            timestamp: new Date().toLocaleDateString('en-GB', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-            remarks: remarks || 'Status advanced to ' + newStatus,
-            officerName,
-          },
-        ];
-        const updatedBooking = { ...booking, status: newStatus, statusHistory: updatedHistory, ...(extraData || {}) };
-        if (newStatus === 'QUALITY_VERIFIED' && !updatedBooking.qualityCheck) {
-          updatedBooking.qualityCheck = {
-            moisturePercent: 11.4,
-            foreignMatterPercent: 0.6,
-            grainGrade: 'Grade-A',
-            inspectorRemarks: 'Passed moisture assay & purity guidelines.',
-          };
-        }
-        if (newStatus === 'WEIGHED' && !updatedBooking.weighbridge) {
-          const netKg = booking.estimatedQuantityQuintals * 100;
-          updatedBooking.weighbridge = {
-            grossWeightKg: netKg + 2800,
-            tareWeightKg: 2800,
-            netWeightKg: netKg,
-            netWeightQuintals: booking.estimatedQuantityQuintals,
-          };
-        }
-        if (newStatus === 'PAYMENT_COMPLETED' && updatedBooking.paymentDetails) {
-          updatedBooking.paymentDetails.dbtStatus = 'SUCCESS';
-          updatedBooking.paymentDetails.disbursedAt = new Date().toLocaleDateString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-        }
-        pushedBooking = updatedBooking;
-        return updatedBooking;
-      })
-    );
+    const currentBooking = bookingsRef.current.find(b => b.id === id || b.tokenNumber === id);
+    if (!currentBooking) return;
+
+    const updatedHistory = [
+      ...currentBooking.statusHistory,
+      {
+        stage: newStatus,
+        timestamp: new Date().toLocaleDateString('en-GB', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        remarks: remarks || 'Status advanced to ' + newStatus,
+        officerName,
+      },
+    ];
+
+    const updatedBooking = { ...currentBooking, status: newStatus, statusHistory: updatedHistory, ...(extraData || {}) };
+
+    if (newStatus === 'QUALITY_VERIFIED' && !updatedBooking.qualityCheck) {
+      updatedBooking.qualityCheck = {
+        moisturePercent: 11.4,
+        foreignMatterPercent: 0.6,
+        grainGrade: 'Grade-A',
+        inspectorRemarks: 'Passed moisture assay & purity guidelines.',
+      };
+    }
+    if (newStatus === 'WEIGHED' && !updatedBooking.weighbridge) {
+      const netKg = currentBooking.estimatedQuantityQuintals * 100;
+      updatedBooking.weighbridge = {
+        grossWeightKg: netKg + 2800,
+        tareWeightKg: 2800,
+        netWeightKg: netKg,
+        netWeightQuintals: currentBooking.estimatedQuantityQuintals,
+      };
+    }
+    if (newStatus === 'PAYMENT_COMPLETED' && updatedBooking.paymentDetails) {
+      updatedBooking.paymentDetails.dbtStatus = 'SUCCESS';
+      updatedBooking.paymentDetails.disbursedAt = new Date().toLocaleDateString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+
+    setBookings((prev) => prev.map(b => (b.id === id || b.tokenNumber === id) ? updatedBooking : b));
     playFeedbackTone('success');
 
-    setTimeout(() => {
-      if (pushedBooking) {
-        let stageName = newStatus.replace(/_/g, ' ');
-        if (newStatus === 'ARRIVED_AT_GATE') stageName = 'Arrived at Gate';
-        if (newStatus === 'QUALITY_VERIFIED') stageName = 'Quality Verified';
-        if (newStatus === 'WEIGHED') stageName = 'Weighed';
-        if (newStatus === 'PAYMENT_COMPLETED') stageName = 'Payment Completed';
+    let stageName = newStatus.replace(/_/g, ' ');
+    if (newStatus === 'ARRIVED_AT_GATE') stageName = 'Arrived at Gate';
+    if (newStatus === 'QUALITY_VERIFIED') stageName = 'Quality Verified';
+    if (newStatus === 'WEIGHED') stageName = 'Weighed';
+    if (newStatus === 'PAYMENT_COMPLETED') stageName = 'Payment Completed';
 
-        addNotification({
-          type: 'SMS',
-          title: `Token ${(pushedBooking as any).tokenNumber} Updated`,
-          message: `Your token has successfully advanced to the '${stageName}' stage. ${remarks}`
-        });
+    addNotification({
+      type: 'SMS',
+      title: `Token ${(updatedBooking as any).tokenNumber} Updated`,
+      message: `Your token has successfully advanced to the '${stageName}' stage. ${remarks}`
+    });
 
-        fetch(`${API_BASE}/api/send-sms`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            phone: (pushedBooking as any).farmerPhone, 
-            message: `KisanTrack: Token ${(pushedBooking as any).tokenNumber} advanced to ${stageName}.`
-          })
-        }).catch(() => {});
+    fetch(`${API_BASE}/api/send-sms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        phone: (updatedBooking as any).farmerPhone, 
+        message: `KisanTrack: Token ${(updatedBooking as any).tokenNumber} advanced to ${stageName}.`
+      })
+    }).catch(() => {});
 
-        if (!skipBroadcast) {
-          fetch(`${API_BASE}/api/bookings`, {
-            method: 'POST',
-            body: JSON.stringify(pushedBooking)
-          }).catch(e => console.warn('api err', e));
-        }
-      }
-    }, 0);
+    if (!skipBroadcast) {
+      fetch(`${API_BASE}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedBooking)
+      }).catch(e => console.warn('api err', e));
+    }
   };
 
   const addOrderItem = (item: Omit<OrderBookItem, 'id' | 'timestamp'>) => {
