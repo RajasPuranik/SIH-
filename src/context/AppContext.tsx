@@ -661,10 +661,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 officer = 'Treasury Officer';
               }
 
-              const chars = 'BCDFGHJKLMNPQRSTVWXYZ0123456789';
-              const randomSuffix = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-              const newToken = `KT-${(b.state || 'MP').slice(0, 2).toUpperCase()}-2026-${randomSuffix}`;
-              
               const updatedHistory = [
                 ...b.statusHistory,
                 {
@@ -677,7 +673,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 },
               ];
               
-              const updatedBk: SlotBooking = { ...b, status: nextStatus as SlotStatus, tokenNumber: newToken, statusHistory: updatedHistory };
+              const updatedBk: SlotBooking = { ...b, status: nextStatus as SlotStatus, statusHistory: updatedHistory };
               
               if (nextStatus === 'QUALITY_VERIFIED' && !updatedBk.qualityCheck) {
                 updatedBk.qualityCheck = {
@@ -713,7 +709,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               addNotification({
                 type: 'SYSTEM',
                 title: 'QR Scanned successfully',
-                message: `Your token has been scanned. Status updated to ${nextStatus.replace(/_/g, ' ')}. New token generated for next stage.`
+                message: `Your token has been scanned. Status updated to ${nextStatus.replace(/_/g, ' ')}.`
               });
               playFeedbackTone('success');
             }

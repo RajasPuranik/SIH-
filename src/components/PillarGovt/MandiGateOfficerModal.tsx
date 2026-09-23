@@ -99,6 +99,16 @@ export const MandiGateOfficerModal: React.FC = () => {
       return;
     }
 
+    if (booking.status === 'REJECTED' || booking.status === 'PAYMENT_COMPLETED') {
+      setErrorMsg('Invalid Scan: Token is already ' + booking.status.replace(/_/g, ' ') + '.');
+      playFeedbackTone('alert');
+      setTimeout(() => {
+        setErrorMsg('');
+        isProcessingScanRef.current = false;
+      }, 3000);
+      return;
+    }
+
     if (scannerRef.current) {
       scannerRef.current.clear().catch(console.error);
     }
@@ -263,18 +273,12 @@ export const MandiGateOfficerModal: React.FC = () => {
                       } else if (currentBooking.status === 'WEIGHED') {
                         nextStatus = 'PAYMENT_COMPLETED'; remarks = 'PFMS DBT Payment Cleared'; officer = 'Treasury Officer';
                       }
-                      
-                      const chars = 'BCDFGHJKLMNPQRSTVWXYZ0123456789';
-                      const randomSuffix = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                      const newToken = `KT-${(currentBooking.state || 'MP').slice(0, 2).toUpperCase()}-2026-${randomSuffix}`;
-                      
                       updateBookingStatus(
                         currentBooking.id, 
                         nextStatus, 
                         remarks, 
                         officer, 
-                        false, 
-                        { tokenNumber: newToken }
+                        false
                       );
                     }
                     setScanResult(null);
