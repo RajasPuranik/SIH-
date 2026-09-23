@@ -224,7 +224,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             
             dbBookings.forEach((newB: any) => {
               const oldB = bookingsRef.current.find((b: any) => b.id === newB.id);
-              if (oldB && oldB.status !== newB.status) {
+              const hasStageLocally = oldB && oldB.statusHistory?.some((h: any) => h.stage === newB.status);
+              if (oldB && oldB.status !== newB.status && !hasStageLocally) {
                 const cleanPhone = (p?: string) => (p || '').replace(/\D/g, '').slice(-10);
                 const isOwner = currentUserObj && currentUserObj.role === 'farmer' && cleanPhone(currentUserObj.phone) === cleanPhone(newB.farmerPhone);
                 if (isOwner) {
